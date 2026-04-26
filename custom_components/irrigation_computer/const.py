@@ -7,6 +7,8 @@ from typing import Final
 DOMAIN: Final = "irrigation_computer"
 
 # Config Entry data keys (global)
+CONF_PUSH_ALERT_DEVICE_IDS: Final = "push_alert_device_ids"
+CONF_PUSH_ALERTS_ENABLED: Final = "push_alerts_enabled"
 CONF_RADIATION_SOURCE_ENTITY: Final = "radiation_source_entity"
 CONF_RADIATION_SOURCE_UNIT: Final = "radiation_source_unit"
 
@@ -23,8 +25,10 @@ ZONE_PHASE: Final = "phase"
 ZONE_THRESHOLD_PLANTING: Final = "threshold_planting"
 ZONE_THRESHOLD_FRUIT_SET: Final = "threshold_fruit_set"
 ZONE_THRESHOLD_RIPENING: Final = "threshold_ripening"
+ZONE_POWER_ALERT_DELAY: Final = "power_alert_delay_sec"
 ZONE_POWER_MIN: Final = "power_min"
 ZONE_POWER_MAX: Final = "power_max"
+ZONE_MAX_RUNS_24H: Final = "max_runs_24h"
 ZONE_FALLBACK_ENABLED: Final = "fallback_enabled"
 ZONE_FALLBACK_MINUTES: Final = "fallback_minutes"
 ZONE_FALLBACK_START: Final = "fallback_start"
@@ -48,12 +52,15 @@ REASON_FALLBACK: Final = "Fallback"
 REASONS: Final = (REASON_MANUAL, REASON_RADIATION, REASON_FALLBACK)
 
 # Defaults
+DEFAULT_PUSH_ALERTS_ENABLED: Final = False
 DEFAULT_WATERING_DURATION: Final = 60
 DEFAULT_THRESHOLD_PLANTING: Final = 50.0
 DEFAULT_THRESHOLD_FRUIT_SET: Final = 100.0
 DEFAULT_THRESHOLD_RIPENING: Final = 80.0
+DEFAULT_POWER_ALERT_DELAY: Final = 0
 DEFAULT_POWER_MIN: Final = 5.0
 DEFAULT_POWER_MAX: Final = 500.0
+DEFAULT_MAX_RUNS_24H: Final = 0
 DEFAULT_FALLBACK_MINUTES: Final = 60
 DEFAULT_FALLBACK_START: Final = "06:00:00"
 DEFAULT_FALLBACK_END: Final = "20:00:00"
@@ -63,6 +70,7 @@ DEFAULT_RADIATION_SOURCE_UNIT: Final = UNIT_W_PER_M2
 UPDATE_INTERVAL_SECONDS: Final = 30
 WATCHDOG_GRACE_SECONDS: Final = 5
 POWER_WAIT_SECONDS: Final = 30
+RADIATION_STALE_SECONDS: Final = 2 * 60 * 60
 
 # Services
 SERVICE_START_ZONE: Final = "start_zone"

@@ -5,6 +5,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from homeassistant.core import HomeAssistant
+
 from custom_components.irrigation_computer.const import (
     CONF_RADIATION_SOURCE_ENTITY,
     CONF_RADIATION_SOURCE_UNIT,
@@ -16,8 +18,10 @@ from custom_components.irrigation_computer.const import (
     ZONE_FALLBACK_MINUTES,
     ZONE_FALLBACK_START,
     ZONE_ID,
+    ZONE_MAX_RUNS_24H,
     ZONE_NAME,
     ZONE_PHASE,
+    ZONE_POWER_ALERT_DELAY,
     ZONE_POWER_ENTITY,
     ZONE_POWER_MAX,
     ZONE_POWER_MIN,
@@ -43,6 +47,8 @@ def make_zone(
     fallback_end: str = "23:59:59",
     radiation_trigger_enabled: bool = True,
     threshold_planting: float = 100.0,
+    power_alert_delay_sec: int = 0,
+    max_runs_24h: int = 0,
 ) -> dict[str, Any]:
     return {
         ZONE_ID: uuid.uuid4().hex,
@@ -54,8 +60,10 @@ def make_zone(
         ZONE_THRESHOLD_PLANTING: threshold_planting,
         ZONE_THRESHOLD_FRUIT_SET: 200.0,
         ZONE_THRESHOLD_RIPENING: 80.0,
+        ZONE_POWER_ALERT_DELAY: power_alert_delay_sec,
         ZONE_POWER_MIN: 5.0,
         ZONE_POWER_MAX: 500.0,
+        ZONE_MAX_RUNS_24H: max_runs_24h,
         ZONE_FALLBACK_ENABLED: fallback_enabled,
         ZONE_FALLBACK_MINUTES: fallback_minutes,
         ZONE_FALLBACK_START: fallback_start,
@@ -76,3 +84,18 @@ def base_entry_kwargs(
         "options": {OPT_ZONES: zones or []},
         "title": "Irrigation Computer",
     }
+
+
+def seed_relay_states(
+    hass: HomeAssistant, zones: list[dict[str, Any]], state: str = "off"
+) -> None:
+    """Populate ``hass.states`` for each zone's relay entity.
+
+    The coordinator's pre-start availability check treats a missing relay
+    state as unavailable, so tests that exercise ``async_start_zone`` must
+    seed the underlying switch entity to simulate a loaded switch platform.
+    """
+    for zone in zones:
+        relay = zone.get(ZONE_RELAY_ENTITY)
+        if relay:
+            hass.states.async_set(relay, state)

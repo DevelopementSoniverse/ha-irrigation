@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, time, timedelta, timezone
+from datetime import datetime, time, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -24,13 +24,17 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_PUSH_ALERT_DEVICE_IDS,
+    CONF_PUSH_ALERTS_ENABLED,
     CONF_RADIATION_SOURCE_ENTITY,
     CONF_RADIATION_SOURCE_UNIT,
+    DEFAULT_PUSH_ALERTS_ENABLED,
     DEFAULT_RADIATION_SOURCE_UNIT,
     DOMAIN,
     NOTIFICATION_ID_PREFIX,
     OPT_ZONES,
     POWER_WAIT_SECONDS,
+    RADIATION_STALE_SECONDS,
     REASON_FALLBACK,
     REASON_MANUAL,
     REASON_RADIATION,
@@ -41,6 +45,7 @@ from .const import (
     WATCHDOG_GRACE_SECONDS,
 )
 from .models import ZoneConfig, ZoneRuntimeState
+from .util import mobile_app_notify_service, normalize_device_ids
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,6 +65,8 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         self._runtime: dict[str, ZoneRuntimeState] = {}
         self._zone_locks: dict[str, asyncio.Lock] = {}
         self._zone_tasks: dict[str, asyncio.Task] = {}
+        self._monitor_tasks: set[asyncio.Task] = set()
+        self._active_alerts: set[str] = set()
         self._unsub_listeners: list[CALLBACK_TYPE] = []
         self._store: Store = Store(hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}")
 
@@ -75,6 +82,18 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             entry.options.get(CONF_RADIATION_SOURCE_UNIT)
             or entry.data.get(CONF_RADIATION_SOURCE_UNIT)
             or DEFAULT_RADIATION_SOURCE_UNIT
+        )
+        self._push_alerts_enabled: bool = bool(
+            entry.options.get(
+                CONF_PUSH_ALERTS_ENABLED,
+                entry.data.get(CONF_PUSH_ALERTS_ENABLED, DEFAULT_PUSH_ALERTS_ENABLED),
+            )
+        )
+        self._push_alert_device_ids: list[str] = normalize_device_ids(
+            entry.options.get(
+                CONF_PUSH_ALERT_DEVICE_IDS,
+                entry.data.get(CONF_PUSH_ALERT_DEVICE_IDS, []),
+            )
         )
 
     # ------------------------------------------------------------------ setup
@@ -131,12 +150,20 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         self._unsub_listeners.clear()
         for task in list(self._zone_tasks.values()):
             task.cancel()
+        for task in list(self._monitor_tasks):
+            task.cancel()
         for task in list(self._zone_tasks.values()):
             try:
                 await task
             except (asyncio.CancelledError, Exception):  # noqa: BLE001
                 pass
+        for task in list(self._monitor_tasks):
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                pass
         self._zone_tasks.clear()
+        self._monitor_tasks.clear()
         await self._async_persist()
 
     # ------------------------------------------------------------------ zones
@@ -158,6 +185,14 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
     @property
     def radiation_total_wh(self) -> float:
         return self._radiation_total_wh
+
+    @property
+    def push_alerts_enabled(self) -> bool:
+        return self._push_alerts_enabled
+
+    @property
+    def push_alert_device_ids(self) -> list[str]:
+        return list(self._push_alert_device_ids)
 
     def radiation_since_last_run(self, zone_id: str) -> float:
         rt = self._runtime.get(zone_id)
@@ -216,11 +251,13 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         # even when the source value is constant between state changes.
         if self._radiation_source:
             current = self.hass.states.get(self._radiation_source)
+            await self._async_check_radiation_source_alert(current)
             if current is not None:
                 self._update_radiation_from_state(current)
 
         now = dt_util.now()
         for zone in list(self._zones.values()):
+            await self._async_check_runs_24h_alert(zone, now)
             await self._evaluate_zone_triggers(zone, now)
 
         return {
@@ -300,7 +337,11 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             rt.run_history.append(now.timestamp())
             rt.run_history = _trim_runs(rt.run_history, now)
             rt.last_relay_error = None
+            self._clear_zone_alerts(zone.zone_id)
             self.async_update_listeners()
+
+            if not await self._async_check_relay_available_before_start(zone, rt):
+                return
 
             try:
                 await self._async_relay_on(zone)
@@ -309,11 +350,25 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
                 rt.is_running = False
                 rt.started_at = None
                 _LOGGER.exception("Relay turn_on failed for zone %s", zone.name)
+                await self._async_notify_once(
+                    f"turn_on_failed_{zone.zone_id}",
+                    f"Relay {zone.relay_entity_id} failed to turn on",
+                    f"Zone {zone.name} could not start because turn_on failed: {err}",
+                )
                 self.async_update_listeners()
                 return
 
+            await self._async_check_runs_24h_alert(zone, now)
+            self._track_monitor_task(
+                self.hass.async_create_task(
+                    self._async_monitor_run_timeout(zone, rt.started_at)
+                )
+            )
+
             # Power monitoring
-            self.hass.async_create_task(self._async_monitor_power_start(zone))
+            self._track_monitor_task(
+                self.hass.async_create_task(self._async_monitor_power_start(zone))
+            )
 
             try:
                 await asyncio.sleep(zone.watering_duration_sec)
@@ -327,6 +382,12 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
                     _LOGGER.exception(
                         "Relay turn_off failed for zone %s", zone.name
                     )
+                    await self._async_notify_once(
+                        f"turn_off_failed_{zone.zone_id}",
+                        f"Relay {zone.relay_entity_id} failed to turn off",
+                        f"Zone {zone.name} could not stop cleanly because "
+                        f"turn_off failed: {err}",
+                    )
                     # Schedule a watchdog retry just in case.
                     self.hass.async_create_task(
                         self._async_watchdog_off(zone, retries=3)
@@ -336,7 +397,9 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
                 rt.started_at = None
                 self.async_update_listeners()
                 # Power-after-stop check
-                self.hass.async_create_task(self._async_monitor_power_end(zone))
+                self._track_monitor_task(
+                    self.hass.async_create_task(self._async_monitor_power_end(zone))
+                )
                 await self._async_persist()
 
     async def async_stop_zone(self, zone_id: str) -> None:
@@ -347,8 +410,15 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         if zone is not None:
             try:
                 await self._async_relay_off(zone)
-            except Exception:  # noqa: BLE001
+            except Exception as err:  # noqa: BLE001
                 _LOGGER.exception("Manual stop relay_off failed for %s", zone.name)
+                await self._async_set_zone_error(
+                    zone,
+                    "manual_turn_off_failed",
+                    f"Relay {zone.relay_entity_id} failed to turn off",
+                    f"Manual stop for zone {zone.name} failed because turn_off "
+                    f"failed: {err}",
+                )
             rt = self._runtime.get(zone_id)
             if rt is not None:
                 rt.is_running = False
@@ -387,14 +457,51 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Force relay off failed for %s", zone.name)
 
+    async def _async_check_relay_available_before_start(
+        self, zone: ZoneConfig, rt: ZoneRuntimeState
+    ) -> bool:
+        state = self.hass.states.get(zone.relay_entity_id)
+        if state is not None and state.state not in (
+            None,
+            "",
+            STATE_UNKNOWN,
+            STATE_UNAVAILABLE,
+        ):
+            return True
+        rt.last_relay_error = "relay_unavailable"
+        rt.is_running = False
+        rt.started_at = None
+        self.async_update_listeners()
+        reported_state = state.state if state is not None else "missing"
+        await self._async_notify_once(
+            f"relay_unavailable_{zone.zone_id}",
+            f"Relay {zone.relay_entity_id} is unavailable",
+            f"Zone {zone.name} was not started because relay state is "
+            f"{reported_state}.",
+        )
+        return False
+
     async def _async_watchdog_off(self, zone: ZoneConfig, retries: int = 3) -> None:
+        last_err: Exception | None = None
         for _ in range(retries):
             await asyncio.sleep(WATCHDOG_GRACE_SECONDS)
             try:
                 await self._async_relay_off(zone)
                 return
-            except Exception:  # noqa: BLE001
+            except Exception as err:  # noqa: BLE001
+                last_err = err
                 continue
+        rt = self._runtime.get(zone.zone_id)
+        if rt is not None:
+            rt.last_relay_error = "watchdog_turn_off_failed"
+            self.async_update_listeners()
+        await self._async_notify_once(
+            f"watchdog_turn_off_failed_{zone.zone_id}",
+            f"Relay {zone.relay_entity_id} could not be forced off",
+            f"Zone {zone.name} watchdog failed to turn the relay off after "
+            f"{retries} retries."
+            + (f" Last error: {last_err}" if last_err else ""),
+        )
 
     def _power_entity_for(self, zone: ZoneConfig) -> str | None:
         if zone.power_entity_id:
@@ -408,11 +515,21 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         entity = self._power_entity_for(zone)
         if entity is None:
             return
+
+        if zone.power_alert_delay_sec > 0:
+            await asyncio.sleep(zone.power_alert_delay_sec)
+            rt = self._runtime.get(zone.zone_id)
+            if rt is None or not rt.is_running:
+                return
+
         # Wait up to POWER_WAIT_SECONDS for a positive reading.
         deadline = self.hass.loop.time() + POWER_WAIT_SECONDS
         last_value: float | None = None
+        saw_sensor_state = False
         while self.hass.loop.time() < deadline:
             state = self.hass.states.get(entity)
+            if state is not None:
+                saw_sensor_state = True
             if state is not None and state.state not in (
                 None,
                 "",
@@ -429,13 +546,31 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             await asyncio.sleep(1)
 
         if last_value is None:
-            return  # sensor unavailable, silently skip
+            if not zone.power_entity_id and not saw_sensor_state:
+                return
+            await self._async_set_zone_error(
+                zone,
+                "power_sensor_unavailable",
+                f"Power sensor {entity} unavailable",
+                f"Zone {zone.name} could not verify motor current because "
+                f"power sensor {entity} did not provide a valid reading.",
+            )
+            return
 
         rt = self._runtime.get(zone.zone_id)
-        if rt is None:
+        if rt is None or not rt.is_running:
+            return
+        if last_value <= 0:
+            await self._async_set_zone_error(
+                zone,
+                "power_no_consumption",
+                f"Power consumption {zone.relay_entity_id} not detected",
+                f"Measured power stayed at {last_value} W after startup. "
+                "The motor may not have started or the power sensor may be wrong.",
+            )
             return
         if last_value <= zone.power_min:
-            await self._async_notify(
+            await self._async_notify_once(
                 f"power_low_{zone.zone_id}",
                 f"Power consumption {zone.relay_entity_id} too low",
                 f"Measured power ({last_value} W) is <= undercurrent threshold "
@@ -444,7 +579,7 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             rt.last_relay_error = "power_low"
             self.async_update_listeners()
         elif last_value >= zone.power_max:
-            await self._async_notify(
+            await self._async_notify_once(
                 f"power_high_{zone.zone_id}",
                 f"Power consumption {zone.relay_entity_id} too high",
                 f"Measured power ({last_value} W) exceeds overcurrent threshold "
@@ -465,13 +600,29 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             STATE_UNKNOWN,
             STATE_UNAVAILABLE,
         ):
+            if state is None and not zone.power_entity_id:
+                return
+            await self._async_set_zone_error(
+                zone,
+                "power_sensor_unavailable_after_off",
+                f"Power sensor {entity} unavailable after stop",
+                f"Zone {zone.name} could not verify that power dropped to 0 W "
+                f"because power sensor {entity} was unavailable.",
+            )
             return
         try:
             value = float(state.state)
         except ValueError:
+            await self._async_set_zone_error(
+                zone,
+                "power_sensor_invalid_after_off",
+                f"Power sensor {entity} invalid after stop",
+                f"Zone {zone.name} could not verify that power dropped to 0 W "
+                f"because power sensor {entity} reported {state.state!r}.",
+            )
             return
         if value > 0:
-            await self._async_notify(
+            await self._async_notify_once(
                 f"power_after_off_{zone.zone_id}",
                 f"Power consumption {zone.relay_entity_id} too high after stop",
                 f"Power after script end is {value} W (should be 0 W).",
@@ -480,6 +631,109 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             if rt is not None:
                 rt.last_relay_error = "power_after_off"
                 self.async_update_listeners()
+
+    def _track_monitor_task(self, task: asyncio.Task) -> None:
+        self._monitor_tasks.add(task)
+        task.add_done_callback(self._monitor_tasks.discard)
+
+    def _clear_zone_alerts(self, zone_id: str) -> None:
+        suffix = f"_{zone_id}"
+        self._active_alerts = {
+            alert for alert in self._active_alerts if not alert.endswith(suffix)
+        }
+
+    async def _async_set_zone_error(
+        self, zone: ZoneConfig, code: str, title: str, message: str
+    ) -> None:
+        rt = self._runtime.get(zone.zone_id)
+        if rt is not None:
+            rt.last_relay_error = code
+            self.async_update_listeners()
+        await self._async_notify_once(f"{code}_{zone.zone_id}", title, message)
+
+    async def _async_notify_once(self, suffix: str, title: str, message: str) -> None:
+        if suffix in self._active_alerts:
+            return
+        self._active_alerts.add(suffix)
+        await self._async_notify(suffix, title, message)
+
+    def _clear_alert(self, suffix: str) -> None:
+        self._active_alerts.discard(suffix)
+
+    async def _async_monitor_run_timeout(
+        self, zone: ZoneConfig, started_at: datetime | None
+    ) -> None:
+        await asyncio.sleep(zone.watering_duration_sec + WATCHDOG_GRACE_SECONDS)
+        rt = self._runtime.get(zone.zone_id)
+        if rt is None or not rt.is_running or rt.started_at != started_at:
+            return
+        await self._async_set_zone_error(
+            zone,
+            "run_timeout",
+            f"Zone {zone.name} is running longer than expected",
+            f"Zone {zone.name} is still marked as running after "
+            f"{zone.watering_duration_sec + WATCHDOG_GRACE_SECONDS} seconds.",
+        )
+
+    async def _async_check_radiation_source_alert(self, state: State | None) -> None:
+        suffix = "radiation_source_unavailable"
+        if state is None or state.state in (None, "", STATE_UNKNOWN, STATE_UNAVAILABLE):
+            await self._async_notify_once(
+                suffix,
+                "Radiation source unavailable",
+                f"Radiation source {self._radiation_source} is unavailable, "
+                "so radiation-based irrigation cannot be evaluated.",
+            )
+            return
+
+        try:
+            value = float(state.state)
+        except (TypeError, ValueError):
+            value = None
+
+        stale_suffix = "radiation_source_stale"
+        if value is not None and value <= 0:
+            self._clear_alert(suffix)
+            self._clear_alert(stale_suffix)
+            return
+
+        age = (dt_util.utcnow() - state.last_updated).total_seconds()
+        if age > RADIATION_STALE_SECONDS:
+            self._clear_alert(suffix)
+            await self._async_notify_once(
+                stale_suffix,
+                "Radiation source stale",
+                f"Radiation source {self._radiation_source} has not updated for "
+                f"{round(age / 60)} minutes.",
+            )
+            return
+
+        self._clear_alert(suffix)
+        self._clear_alert(stale_suffix)
+
+    async def _async_check_runs_24h_alert(
+        self, zone: ZoneConfig, now: datetime
+    ) -> None:
+        suffix = f"runs_24h_{zone.zone_id}"
+        if zone.max_runs_24h <= 0:
+            self._clear_alert(suffix)
+            return
+        rt = self._runtime.get(zone.zone_id)
+        if rt is None:
+            self._clear_alert(suffix)
+            return
+        runs = _count_recent_runs(rt.run_history, now)
+        if runs <= zone.max_runs_24h:
+            self._clear_alert(suffix)
+            return
+        rt.last_relay_error = "too_many_runs_24h"
+        self.async_update_listeners()
+        await self._async_notify_once(
+            suffix,
+            f"Zone {zone.name} ran too often",
+            f"Zone {zone.name} ran {runs} times in the last 24 hours, "
+            f"above the configured alert threshold of {zone.max_runs_24h}.",
+        )
 
     async def _async_notify(self, suffix: str, title: str, message: str) -> None:
         try:
@@ -495,6 +749,32 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             )
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Failed to create persistent notification")
+
+        if not self._push_alerts_enabled or not self._push_alert_device_ids:
+            return
+
+        for device_id in self._push_alert_device_ids:
+            service = mobile_app_notify_service(self.hass, device_id)
+            if service is None:
+                _LOGGER.warning(
+                    "No mobile_app notify service found for device %s; "
+                    "skipping push notification",
+                    device_id,
+                )
+                continue
+            try:
+                await self.hass.services.async_call(
+                    "notify",
+                    service,
+                    {"title": title, "message": message},
+                    blocking=False,
+                )
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception(
+                    "Failed to send push notification to device %s via %s",
+                    device_id,
+                    service,
+                )
 
     # --------------------------------------------------------------- persist
 

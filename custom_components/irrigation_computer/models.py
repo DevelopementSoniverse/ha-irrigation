@@ -10,6 +10,8 @@ from .const import (
     DEFAULT_FALLBACK_END,
     DEFAULT_FALLBACK_MINUTES,
     DEFAULT_FALLBACK_START,
+    DEFAULT_MAX_RUNS_24H,
+    DEFAULT_POWER_ALERT_DELAY,
     DEFAULT_POWER_MAX,
     DEFAULT_POWER_MIN,
     DEFAULT_THRESHOLD_FRUIT_SET,
@@ -27,6 +29,8 @@ from .const import (
     ZONE_ID,
     ZONE_NAME,
     ZONE_PHASE,
+    ZONE_MAX_RUNS_24H,
+    ZONE_POWER_ALERT_DELAY,
     ZONE_POWER_ENTITY,
     ZONE_POWER_MAX,
     ZONE_POWER_MIN,
@@ -52,8 +56,10 @@ class ZoneConfig:
     threshold_planting: float = DEFAULT_THRESHOLD_PLANTING
     threshold_fruit_set: float = DEFAULT_THRESHOLD_FRUIT_SET
     threshold_ripening: float = DEFAULT_THRESHOLD_RIPENING
+    power_alert_delay_sec: int = DEFAULT_POWER_ALERT_DELAY
     power_min: float = DEFAULT_POWER_MIN
     power_max: float = DEFAULT_POWER_MAX
+    max_runs_24h: int = DEFAULT_MAX_RUNS_24H
     fallback_enabled: bool = True
     fallback_minutes: int = DEFAULT_FALLBACK_MINUTES
     fallback_start: str = DEFAULT_FALLBACK_START
@@ -85,8 +91,12 @@ class ZoneConfig:
             threshold_ripening=float(
                 data.get(ZONE_THRESHOLD_RIPENING, DEFAULT_THRESHOLD_RIPENING)
             ),
+            power_alert_delay_sec=int(
+                data.get(ZONE_POWER_ALERT_DELAY, DEFAULT_POWER_ALERT_DELAY)
+            ),
             power_min=float(data.get(ZONE_POWER_MIN, DEFAULT_POWER_MIN)),
             power_max=float(data.get(ZONE_POWER_MAX, DEFAULT_POWER_MAX)),
+            max_runs_24h=int(data.get(ZONE_MAX_RUNS_24H, DEFAULT_MAX_RUNS_24H)),
             fallback_enabled=bool(data.get(ZONE_FALLBACK_ENABLED, True)),
             fallback_minutes=int(
                 data.get(ZONE_FALLBACK_MINUTES, DEFAULT_FALLBACK_MINUTES)

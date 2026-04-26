@@ -151,6 +151,19 @@ def _metric_tile_card(entity_id: str, name: str, icon: str) -> dict[str, Any]:
     }
 
 
+def _entities_card(title: str, entity_ids: list[str | None]) -> dict[str, Any] | None:
+    """Return an entities card with missing entities removed."""
+    entities = [entity_id for entity_id in entity_ids if entity_id is not None]
+    if not entities:
+        return None
+    return {
+        "type": "entities",
+        "title": title,
+        "show_header_toggle": False,
+        "entities": entities,
+    }
+
+
 def _zone_overview_stack(
     hass: HomeAssistant, controller: IrrigationController, zone: ZoneConfig
 ) -> dict[str, Any] | None:
@@ -241,41 +254,69 @@ def _zone_settings_view(
     """Build per-zone settings subview opened via the gear button."""
     entity_map = _zone_entity_map(hass, controller, zone)
 
-    visible_entities = [
-        entity_map.get("running"),
-        entity_map.get("fallback_active"),
-        entity_map.get("relay_available"),
-        entity_map.get("relay_error"),
-        entity_map.get("phase"),
-        entity_map.get("watering_duration_sec"),
-        entity_map.get("threshold_planting"),
-        entity_map.get("threshold_fruit_set"),
-        entity_map.get("threshold_ripening"),
-        entity_map.get("power_min"),
-        entity_map.get("power_max"),
-        entity_map.get("fallback_enabled"),
-        entity_map.get("fallback_minutes"),
-        entity_map.get("fallback_start"),
-        entity_map.get("fallback_end"),
-        entity_map.get("radiation_trigger_enabled"),
-        entity_map.get("reset_radiation_button"),
+    cards = [
+        _entities_card(
+            "Status",
+            [
+                entity_map.get("running"),
+                entity_map.get("relay_available"),
+                entity_map.get("current_power"),
+                entity_map.get("last_run"),
+                entity_map.get("last_reason"),
+                entity_map.get("time_since_last_irrigation"),
+            ],
+        ),
+        _entities_card(
+            "Bewässerung",
+            [
+                entity_map.get("running_switch"),
+                entity_map.get("watering_duration_sec"),
+                entity_map.get("start_button"),
+                entity_map.get("stop_button"),
+            ],
+        ),
+        _entities_card(
+            "Kulturart & Strahlung",
+            [
+                entity_map.get("phase"),
+                entity_map.get("threshold_planting"),
+                entity_map.get("threshold_fruit_set"),
+                entity_map.get("threshold_ripening"),
+                entity_map.get("current_radiation_threshold"),
+                entity_map.get("radiation_since_last_irrigation"),
+                entity_map.get("radiation_trigger_enabled"),
+                entity_map.get("reset_radiation_button"),
+            ],
+        ),
+        _entities_card(
+            "Alerts & Sicherheit",
+            [
+                entity_map.get("power_alert_delay_sec"),
+                entity_map.get("power_min"),
+                entity_map.get("power_max"),
+                entity_map.get("max_runs_24h"),
+                entity_map.get("runs_24h"),
+                entity_map.get("relay_error"),
+            ],
+        ),
+        _entities_card(
+            "Fallback",
+            [
+                entity_map.get("fallback_enabled"),
+                entity_map.get("fallback_active"),
+                entity_map.get("fallback_minutes"),
+                entity_map.get("fallback_start"),
+                entity_map.get("fallback_end"),
+            ],
+        ),
     ]
-
-    entities = [entity_id for entity_id in visible_entities if entity_id is not None]
 
     return {
         "title": f"{zone.name} Einstellungen",
         "path": _zone_view_path(zone),
         "subview": True,
         "icon": "mdi:cog-outline",
-        "cards": [
-            {
-                "type": "entities",
-                "title": zone.name,
-                "show_header_toggle": False,
-                "entities": entities,
-            }
-        ],
+        "cards": [card for card in cards if card is not None],
     }
 
 

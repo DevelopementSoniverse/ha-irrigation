@@ -14,7 +14,7 @@ from custom_components.irrigation_computer.coordinator import (
     in_fallback_window,
 )
 from custom_components.irrigation_computer.models import ZoneConfig
-from tests.common import base_entry_kwargs, make_zone
+from tests.common import base_entry_kwargs, make_zone, seed_relay_states
 
 
 def _zone_cfg(**overrides) -> ZoneConfig:
@@ -46,6 +46,7 @@ async def test_fallback_trigger_starts_zone(hass: HomeAssistant) -> None:
     )
     entry = MockConfigEntry(**base_entry_kwargs(zones=[zone]))
     entry.add_to_hass(hass)
+    seed_relay_states(hass, [zone])
     controller = IrrigationController(hass, entry)
     await controller.async_initialize()
 

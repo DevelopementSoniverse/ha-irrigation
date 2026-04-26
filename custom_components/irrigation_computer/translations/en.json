@@ -7,7 +7,9 @@
         "description": "Configure the global radiation source. Zones can be added afterwards via the integration's options.",
         "data": {
           "radiation_source_entity": "Radiation source sensor (e.g. solar irradiance)",
-          "radiation_source_unit": "Radiation source unit"
+          "radiation_source_unit": "Radiation source unit",
+          "push_alerts_enabled": "Send custom component alerts as push notifications",
+          "push_alert_device_ids": "Smartphones for push notifications"
         }
       }
     },
@@ -30,7 +32,9 @@
         "title": "Global settings",
         "data": {
           "radiation_source_entity": "Radiation source sensor",
-          "radiation_source_unit": "Radiation source unit"
+          "radiation_source_unit": "Radiation source unit",
+          "push_alerts_enabled": "Send custom component alerts as push notifications",
+          "push_alert_device_ids": "Smartphones for push notifications"
         }
       },
       "add_zone": {
@@ -44,8 +48,10 @@
           "threshold_planting": "Radiation threshold – Planting (Wh/m²)",
           "threshold_fruit_set": "Radiation threshold – Fruit Set (Wh/m²)",
           "threshold_ripening": "Radiation threshold – Ripening (Wh/m²)",
+          "power_alert_delay_sec": "Power alert delay (seconds)",
           "power_min": "Undercurrent threshold (W)",
           "power_max": "Overcurrent threshold (W)",
+          "max_runs_24h": "24h run alert threshold (0 = disabled)",
           "fallback_enabled": "Fallback enabled",
           "fallback_minutes": "Fallback interval (min)",
           "fallback_start": "Fallback active from (HH:MM)",
@@ -70,8 +76,10 @@
           "threshold_planting": "Radiation threshold – Planting (Wh/m²)",
           "threshold_fruit_set": "Radiation threshold – Fruit Set (Wh/m²)",
           "threshold_ripening": "Radiation threshold – Ripening (Wh/m²)",
+          "power_alert_delay_sec": "Power alert delay (seconds)",
           "power_min": "Undercurrent threshold (W)",
           "power_max": "Overcurrent threshold (W)",
+          "max_runs_24h": "24h run alert threshold (0 = disabled)",
           "fallback_enabled": "Fallback enabled",
           "fallback_minutes": "Fallback interval (min)",
           "fallback_start": "Fallback active from (HH:MM)",

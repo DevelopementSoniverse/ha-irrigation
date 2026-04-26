@@ -7,7 +7,9 @@
         "description": "Globale Strahlungsquelle konfigurieren. Zonen können danach in den Optionen angelegt werden.",
         "data": {
           "radiation_source_entity": "Strahlungssensor (z.B. Solarstrahlung)",
-          "radiation_source_unit": "Einheit der Strahlungsquelle"
+          "radiation_source_unit": "Einheit der Strahlungsquelle",
+          "push_alerts_enabled": "Custom-Component-Alerts als Push senden",
+          "push_alert_device_ids": "Smartphones für Push-Nachrichten"
         }
       }
     },
@@ -30,7 +32,9 @@
         "title": "Globale Einstellungen",
         "data": {
           "radiation_source_entity": "Strahlungssensor",
-          "radiation_source_unit": "Einheit der Strahlungsquelle"
+          "radiation_source_unit": "Einheit der Strahlungsquelle",
+          "push_alerts_enabled": "Custom-Component-Alerts als Push senden",
+          "push_alert_device_ids": "Smartphones für Push-Nachrichten"
         }
       },
       "add_zone": {
@@ -44,8 +48,10 @@
           "threshold_planting": "Strahlungs-Schwellwert – Pflanzphase (Wh/m²)",
           "threshold_fruit_set": "Strahlungs-Schwellwert – Fruchtansatz (Wh/m²)",
           "threshold_ripening": "Strahlungs-Schwellwert – Reifephase (Wh/m²)",
+          "power_alert_delay_sec": "Stromalarm-Verzögerung (Sekunden)",
           "power_min": "Unterstrom-Schwellwert (W)",
           "power_max": "Überstrom-Schwellwert (W)",
+          "max_runs_24h": "Alarm-Grenzwert Läufe in 24 h (0 = deaktiviert)",
           "fallback_enabled": "Fallback aktiv",
           "fallback_minutes": "Fallback-Intervall (min)",
           "fallback_start": "Fallback aktiv ab (HH:MM)",
@@ -70,8 +76,10 @@
           "threshold_planting": "Strahlungs-Schwellwert – Pflanzphase (Wh/m²)",
           "threshold_fruit_set": "Strahlungs-Schwellwert – Fruchtansatz (Wh/m²)",
           "threshold_ripening": "Strahlungs-Schwellwert – Reifephase (Wh/m²)",
+          "power_alert_delay_sec": "Stromalarm-Verzögerung (Sekunden)",
           "power_min": "Unterstrom-Schwellwert (W)",
           "power_max": "Überstrom-Schwellwert (W)",
+          "max_runs_24h": "Alarm-Grenzwert Läufe in 24 h (0 = deaktiviert)",
           "fallback_enabled": "Fallback aktiv",
           "fallback_minutes": "Fallback-Intervall (min)",
           "fallback_start": "Fallback aktiv ab (HH:MM)",

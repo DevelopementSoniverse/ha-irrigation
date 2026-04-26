@@ -53,15 +53,15 @@ directory and restart Home Assistant.
    sensor** and its unit. Skip it if you don't have one yet.
 2. Open the integration's **Configure** dialog (Settings → Devices & Services).
    The options menu lets you:
-   - Edit global settings (radiation source).
+   - Edit global settings (radiation source and optional smartphone push alerts).
    - **Add a zone**.
    - Edit an existing zone.
    - Delete a zone.
 
 For each zone you provide a name, the relay switch entity, an optional power
 sensor, a watering duration in seconds, the growth phase + the three radiation
-thresholds (planting / fruit set / ripening), under-/overcurrent thresholds and
-a fallback window.
+thresholds (planting / fruit set / ripening), an alert delay for startup power,
+under-/overcurrent thresholds and a fallback window.
 
 ## Entities per zone
 
@@ -89,13 +89,20 @@ the device name + the entity name below.
 | button         | Reset radiation counter        |  |
 | number         | Watering duration              | s |
 | number         | Threshold Planting / Fruit Set / Ripening | Wh/m² |
+| number         | Power alert delay              | s |
 | number         | Undercurrent / Overcurrent threshold | W |
+| number         | Max runs 24h alert threshold   | count (0 disables alert) |
 | number         | Fallback interval              | min |
 | select         | Growth phase                   | Planting / Fruit Set / Ripening |
 | time           | Fallback start / Fallback end  | HH:MM:SS |
 
 There is also one controller-level entity: **Global radiation energy** (Wh/m²,
 total integrated reading from the radiation source).
+
+Alerts are always created as Home Assistant persistent notifications. In the
+global options, you can additionally enable push alerts and select one or more
+Home Assistant mobile app devices that should receive the same alert on their
+smartphones.
 
 ## Services
 

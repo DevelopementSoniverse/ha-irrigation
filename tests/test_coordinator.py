@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.irrigation_computer.coordinator import IrrigationController
-from tests.common import base_entry_kwargs, make_zone
+from tests.common import base_entry_kwargs, make_zone, seed_relay_states
 
 
 async def test_radiation_trigger_starts_zone(hass: HomeAssistant) -> None:
@@ -22,6 +23,7 @@ async def test_radiation_trigger_starts_zone(hass: HomeAssistant) -> None:
     )
     entry = MockConfigEntry(**base_entry_kwargs(zones=[zone]))
     entry.add_to_hass(hass)
+    seed_relay_states(hass, [zone])
     controller = IrrigationController(hass, entry)
     await controller.async_initialize()
 
@@ -98,5 +100,58 @@ async def test_radiation_trigger_outside_fallback_window_blocked(
         assert not any(
             c.args[:2] == ("switch", "turn_on") for c in mock_call.call_args_list
         )
+
+    await controller.async_shutdown()
+
+
+async def test_radiation_source_unavailable_sends_alert(hass: HomeAssistant) -> None:
+    zone = make_zone(radiation_trigger_enabled=True)
+    entry = MockConfigEntry(
+        **base_entry_kwargs(radiation_source="sensor.solar_radiation", zones=[zone])
+    )
+    entry.add_to_hass(hass)
+    hass.states.async_set("sensor.solar_radiation", "unavailable")
+    controller = IrrigationController(hass, entry)
+
+    with patch.object(hass.services, "async_call") as mock_call:
+        await controller.async_initialize()
+        await controller.async_refresh()
+
+    assert any(
+        c.args[:2] == ("persistent_notification", "create")
+        and c.args[2]["notification_id"]
+        == "irrigation_computer_radiation_source_unavailable"
+        for c in mock_call.call_args_list
+    )
+
+    await controller.async_shutdown()
+
+
+async def test_radiation_source_zero_does_not_send_stale_alert(
+    hass: HomeAssistant,
+) -> None:
+    zone = make_zone(radiation_trigger_enabled=True)
+    entry = MockConfigEntry(
+        **base_entry_kwargs(radiation_source="sensor.solar_radiation", zones=[zone])
+    )
+    entry.add_to_hass(hass)
+    controller = IrrigationController(hass, entry)
+    await controller.async_initialize()
+    stale_zero_state = State(
+        "sensor.solar_radiation",
+        "0",
+        last_updated=datetime.now(timezone.utc) - timedelta(hours=8),
+    )
+
+    with patch.object(hass.services, "async_call") as mock_call:
+        await controller._async_check_radiation_source_alert(stale_zero_state)
+
+    assert not any(
+        c.args[:2] == ("persistent_notification", "create")
+        and c.args[2]["notification_id"].startswith(
+            "irrigation_computer_radiation_source_"
+        )
+        for c in mock_call.call_args_list
+    )
 
     await controller.async_shutdown()

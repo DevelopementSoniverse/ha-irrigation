@@ -18,13 +18,18 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_PUSH_ALERT_DEVICE_IDS,
+    CONF_PUSH_ALERTS_ENABLED,
     CONF_RADIATION_SOURCE_ENTITY,
     CONF_RADIATION_SOURCE_UNIT,
     DEFAULT_FALLBACK_END,
     DEFAULT_FALLBACK_MINUTES,
     DEFAULT_FALLBACK_START,
+    DEFAULT_MAX_RUNS_24H,
+    DEFAULT_POWER_ALERT_DELAY,
     DEFAULT_POWER_MAX,
     DEFAULT_POWER_MIN,
+    DEFAULT_PUSH_ALERTS_ENABLED,
     DEFAULT_RADIATION_SOURCE_UNIT,
     DEFAULT_THRESHOLD_FRUIT_SET,
     DEFAULT_THRESHOLD_PLANTING,
@@ -41,8 +46,10 @@ from .const import (
     ZONE_FALLBACK_MINUTES,
     ZONE_FALLBACK_START,
     ZONE_ID,
+    ZONE_MAX_RUNS_24H,
     ZONE_NAME,
     ZONE_PHASE,
+    ZONE_POWER_ALERT_DELAY,
     ZONE_POWER_ENTITY,
     ZONE_POWER_MAX,
     ZONE_POWER_MIN,
@@ -53,6 +60,7 @@ from .const import (
     ZONE_THRESHOLD_RIPENING,
     ZONE_WATERING_DURATION,
 )
+from .util import normalize_device_ids
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -92,6 +100,21 @@ def _initial_global_schema(defaults: dict[str, Any] | None = None) -> vol.Schema
                     CONF_RADIATION_SOURCE_UNIT, DEFAULT_RADIATION_SOURCE_UNIT
                 ),
             ): _radiation_unit_selector(),
+            vol.Required(
+                CONF_PUSH_ALERTS_ENABLED,
+                default=defaults.get(
+                    CONF_PUSH_ALERTS_ENABLED, DEFAULT_PUSH_ALERTS_ENABLED
+                ),
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_PUSH_ALERT_DEVICE_IDS,
+                default=normalize_device_ids(defaults.get(CONF_PUSH_ALERT_DEVICE_IDS)),
+            ): selector.DeviceSelector(
+                selector.DeviceSelectorConfig(
+                    integration="mobile_app",
+                    multiple=True,
+                )
+            ),
         }
     )
 
@@ -159,6 +182,16 @@ def _zone_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
                 )
             ),
             vol.Required(
+                ZONE_POWER_ALERT_DELAY,
+                default=defaults.get(
+                    ZONE_POWER_ALERT_DELAY, DEFAULT_POWER_ALERT_DELAY
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, max=300, step=1, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
+            vol.Required(
                 ZONE_POWER_MIN,
                 default=defaults.get(ZONE_POWER_MIN, DEFAULT_POWER_MIN),
             ): selector.NumberSelector(
@@ -172,6 +205,14 @@ def _zone_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0, max=10000, step=1, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
+            vol.Required(
+                ZONE_MAX_RUNS_24H,
+                default=defaults.get(ZONE_MAX_RUNS_24H, DEFAULT_MAX_RUNS_24H),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, max=50, step=1, mode=selector.NumberSelectorMode.BOX
                 )
             ),
             vol.Required(
@@ -224,6 +265,10 @@ def _validate_zone(user_input: dict[str, Any]) -> dict[str, str]:
 def _normalize_zone_input(user_input: dict[str, Any]) -> dict[str, Any]:
     out = dict(user_input)
     out[ZONE_WATERING_DURATION] = int(out.get(ZONE_WATERING_DURATION, DEFAULT_WATERING_DURATION))
+    out[ZONE_POWER_ALERT_DELAY] = int(
+        out.get(ZONE_POWER_ALERT_DELAY, DEFAULT_POWER_ALERT_DELAY)
+    )
+    out[ZONE_MAX_RUNS_24H] = int(out.get(ZONE_MAX_RUNS_24H, DEFAULT_MAX_RUNS_24H))
     out[ZONE_FALLBACK_MINUTES] = int(out.get(ZONE_FALLBACK_MINUTES, DEFAULT_FALLBACK_MINUTES))
     for key in (
         ZONE_THRESHOLD_PLANTING,
@@ -258,6 +303,15 @@ class IrrigationComputerConfigFlow(ConfigFlow, domain=DOMAIN):
                     ),
                     CONF_RADIATION_SOURCE_UNIT: user_input.get(
                         CONF_RADIATION_SOURCE_UNIT, DEFAULT_RADIATION_SOURCE_UNIT
+                    ),
+                    CONF_PUSH_ALERTS_ENABLED: bool(
+                        user_input.get(
+                            CONF_PUSH_ALERTS_ENABLED,
+                            DEFAULT_PUSH_ALERTS_ENABLED,
+                        )
+                    ),
+                    CONF_PUSH_ALERT_DEVICE_IDS: normalize_device_ids(
+                        user_input.get(CONF_PUSH_ALERT_DEVICE_IDS)
                     ),
                 },
                 options={OPT_ZONES: []},
@@ -330,6 +384,18 @@ class IrrigationComputerOptionsFlow(OptionsFlow):
                     CONF_RADIATION_SOURCE_UNIT, DEFAULT_RADIATION_SOURCE_UNIT
                 ),
             ),
+            CONF_PUSH_ALERTS_ENABLED: self.config_entry.options.get(
+                CONF_PUSH_ALERTS_ENABLED,
+                self.config_entry.data.get(
+                    CONF_PUSH_ALERTS_ENABLED, DEFAULT_PUSH_ALERTS_ENABLED
+                ),
+            ),
+            CONF_PUSH_ALERT_DEVICE_IDS: normalize_device_ids(
+                self.config_entry.options.get(
+                    CONF_PUSH_ALERT_DEVICE_IDS,
+                    self.config_entry.data.get(CONF_PUSH_ALERT_DEVICE_IDS, []),
+                )
+            ),
         }
         if user_input is not None:
             new_options = dict(self.config_entry.options)
@@ -338,6 +404,15 @@ class IrrigationComputerOptionsFlow(OptionsFlow):
             )
             new_options[CONF_RADIATION_SOURCE_UNIT] = user_input.get(
                 CONF_RADIATION_SOURCE_UNIT, DEFAULT_RADIATION_SOURCE_UNIT
+            )
+            new_options[CONF_PUSH_ALERTS_ENABLED] = bool(
+                user_input.get(
+                    CONF_PUSH_ALERTS_ENABLED,
+                    DEFAULT_PUSH_ALERTS_ENABLED,
+                )
+            )
+            new_options[CONF_PUSH_ALERT_DEVICE_IDS] = normalize_device_ids(
+                user_input.get(CONF_PUSH_ALERT_DEVICE_IDS)
             )
             new_options.setdefault(OPT_ZONES, self._zones)
             return self.async_create_entry(title="", data=new_options)

@@ -12,6 +12,7 @@ docker/config/*.db*
 docker/config/*.log*
 docker/config/.cloud
 docker/config/.uuid
+docker/config/.ha_run.lock
 docker/config/deps/
 docker/config/tts/
 docker/config/custom_components/
