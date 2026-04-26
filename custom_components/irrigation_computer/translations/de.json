@@ -56,7 +56,12 @@
           "fallback_minutes": "Fallback-Intervall (min)",
           "fallback_start": "Fallback aktiv ab (HH:MM)",
           "fallback_end": "Fallback aktiv bis (HH:MM)",
-          "radiation_trigger_enabled": "Strahlungs-Trigger aktiv"
+          "radiation_trigger_enabled": "Strahlungs-Trigger aktiv",
+          "soil_moisture_entity_ids": "Bodenfeuchtesensoren (optional, einer oder mehrere)",
+          "soil_moisture_trigger_enabled": "Bodenfeuchte-Trigger aktiv",
+          "soil_moisture_threshold": "Bodenfeuchte-Schwellwert (%)",
+          "soil_moisture_dwell_minutes": "Haltezeit unterhalb Schwellwert (min)",
+          "min_interval_minutes": "Mindestabstand zwischen Bewässerungen (min, 0 = deaktiviert)"
         }
       },
       "edit_zone_select": {
@@ -84,7 +89,12 @@
           "fallback_minutes": "Fallback-Intervall (min)",
           "fallback_start": "Fallback aktiv ab (HH:MM)",
           "fallback_end": "Fallback aktiv bis (HH:MM)",
-          "radiation_trigger_enabled": "Strahlungs-Trigger aktiv"
+          "radiation_trigger_enabled": "Strahlungs-Trigger aktiv",
+          "soil_moisture_entity_ids": "Bodenfeuchtesensoren (optional, einer oder mehrere)",
+          "soil_moisture_trigger_enabled": "Bodenfeuchte-Trigger aktiv",
+          "soil_moisture_threshold": "Bodenfeuchte-Schwellwert (%)",
+          "soil_moisture_dwell_minutes": "Haltezeit unterhalb Schwellwert (min)",
+          "min_interval_minutes": "Mindestabstand zwischen Bewässerungen (min, 0 = deaktiviert)"
         }
       },
       "delete_zone_select": {
@@ -115,7 +125,7 @@
       "description": "Eine einzelne Bewässerungszone starten.",
       "fields": {
         "zone_id": {"name": "Zone-ID", "description": "ID der zu startenden Zone"},
-        "reason": {"name": "Grund", "description": "Grund (Manual / Radiation / Fallback)"}
+        "reason": {"name": "Grund", "description": "Grund (Manual / Radiation / Fallback / Soil moisture)"}
       }
     },
     "stop_zone": {

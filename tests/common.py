@@ -19,6 +19,7 @@ from custom_components.irrigation_computer.const import (
     ZONE_FALLBACK_START,
     ZONE_ID,
     ZONE_MAX_RUNS_24H,
+    ZONE_MIN_INTERVAL_MINUTES,
     ZONE_NAME,
     ZONE_PHASE,
     ZONE_POWER_ALERT_DELAY,
@@ -27,6 +28,10 @@ from custom_components.irrigation_computer.const import (
     ZONE_POWER_MIN,
     ZONE_RADIATION_TRIGGER_ENABLED,
     ZONE_RELAY_ENTITY,
+    ZONE_SOIL_MOISTURE_DWELL_MINUTES,
+    ZONE_SOIL_MOISTURE_ENTITIES,
+    ZONE_SOIL_MOISTURE_THRESHOLD,
+    ZONE_SOIL_MOISTURE_TRIGGER_ENABLED,
     ZONE_THRESHOLD_FRUIT_SET,
     ZONE_THRESHOLD_PLANTING,
     ZONE_THRESHOLD_RIPENING,
@@ -49,6 +54,11 @@ def make_zone(
     threshold_planting: float = 100.0,
     power_alert_delay_sec: int = 0,
     max_runs_24h: int = 0,
+    soil_moisture_entity_ids: list[str] | None = None,
+    soil_moisture_trigger_enabled: bool = False,
+    soil_moisture_threshold: float = 30.0,
+    soil_moisture_dwell_minutes: int = 0,
+    min_interval_minutes: int = 0,
 ) -> dict[str, Any]:
     return {
         ZONE_ID: uuid.uuid4().hex,
@@ -69,6 +79,11 @@ def make_zone(
         ZONE_FALLBACK_START: fallback_start,
         ZONE_FALLBACK_END: fallback_end,
         ZONE_RADIATION_TRIGGER_ENABLED: radiation_trigger_enabled,
+        ZONE_SOIL_MOISTURE_ENTITIES: list(soil_moisture_entity_ids or []),
+        ZONE_SOIL_MOISTURE_TRIGGER_ENABLED: soil_moisture_trigger_enabled,
+        ZONE_SOIL_MOISTURE_THRESHOLD: soil_moisture_threshold,
+        ZONE_SOIL_MOISTURE_DWELL_MINUTES: soil_moisture_dwell_minutes,
+        ZONE_MIN_INTERVAL_MINUTES: min_interval_minutes,
     }
 
 

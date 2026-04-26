@@ -51,6 +51,7 @@ Die Spalte **Fehlercode** entspricht dem Wert von
 | `power_sensor_invalid_after_off` | Leistungssensor liefert nach dem Stopp einen nicht als Zahl interpretierbaren Wert | Der Motor-Stopp kann nicht verifiziert werden | Persistent + Push |
 | `run_timeout` | Zone ist nach `watering_duration + 5 s` immer noch als laufend markiert | Lauf wird **nicht zwangsgestoppt**; weist auf möglicherweise hängenden Task hin | Persistent + Push |
 | `too_many_runs_24h` | Anzahl Läufe in den letzten 24 h überschreitet den konfigurierten *„Alarm-Grenzwert Läufe in 24 h"* (`0` = deaktiviert) | **Nur informativ** – weder der laufende noch zukünftige Läufe werden blockiert | Persistent + Push |
+| `soil_moisture_sensors_unavailable` | Bodenfeuchte-Trigger ist aktiv, aber keiner der konfigurierten Sensoren liefert aktuell einen gültigen Zahlenwert | Trigger kann nicht ausgewertet werden; der Haltezeit-Zähler (`moisture_below_since`) bleibt **absichtlich unverändert**, damit ein kurzer Sensor-Ausfall die Bewässerung nicht unnötig verzögert. Alarm wird automatisch gelöscht, sobald mindestens ein Sensor wieder einen Wert liefert | Persistent + Push |
 
 ### Verzögerter Leistungs-Check
 

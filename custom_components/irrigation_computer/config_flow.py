@@ -15,7 +15,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import callback
-from homeassistant.helpers import selector
+from homeassistant.helpers import entity_registry as er, selector
 
 from .const import (
     CONF_PUSH_ALERT_DEVICE_IDS,
@@ -26,11 +26,14 @@ from .const import (
     DEFAULT_FALLBACK_MINUTES,
     DEFAULT_FALLBACK_START,
     DEFAULT_MAX_RUNS_24H,
+    DEFAULT_MIN_INTERVAL_MINUTES,
     DEFAULT_POWER_ALERT_DELAY,
     DEFAULT_POWER_MAX,
     DEFAULT_POWER_MIN,
     DEFAULT_PUSH_ALERTS_ENABLED,
     DEFAULT_RADIATION_SOURCE_UNIT,
+    DEFAULT_SOIL_MOISTURE_DWELL_MINUTES,
+    DEFAULT_SOIL_MOISTURE_THRESHOLD,
     DEFAULT_THRESHOLD_FRUIT_SET,
     DEFAULT_THRESHOLD_PLANTING,
     DEFAULT_THRESHOLD_RIPENING,
@@ -47,6 +50,7 @@ from .const import (
     ZONE_FALLBACK_START,
     ZONE_ID,
     ZONE_MAX_RUNS_24H,
+    ZONE_MIN_INTERVAL_MINUTES,
     ZONE_NAME,
     ZONE_PHASE,
     ZONE_POWER_ALERT_DELAY,
@@ -55,6 +59,10 @@ from .const import (
     ZONE_POWER_MIN,
     ZONE_RADIATION_TRIGGER_ENABLED,
     ZONE_RELAY_ENTITY,
+    ZONE_SOIL_MOISTURE_DWELL_MINUTES,
+    ZONE_SOIL_MOISTURE_ENTITIES,
+    ZONE_SOIL_MOISTURE_THRESHOLD,
+    ZONE_SOIL_MOISTURE_TRIGGER_ENABLED,
     ZONE_THRESHOLD_FRUIT_SET,
     ZONE_THRESHOLD_PLANTING,
     ZONE_THRESHOLD_RIPENING,
@@ -119,8 +127,13 @@ def _initial_global_schema(defaults: dict[str, Any] | None = None) -> vol.Schema
     )
 
 
-def _zone_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
+def _zone_schema(
+    defaults: dict[str, Any] | None = None,
+    *,
+    exclude_moisture_entities: list[str] | None = None,
+) -> vol.Schema:
     defaults = defaults or {}
+    exclude_moisture_entities = exclude_moisture_entities or []
     return vol.Schema(
         {
             vol.Required(
@@ -241,6 +254,52 @@ def _zone_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
                 ZONE_RADIATION_TRIGGER_ENABLED,
                 default=defaults.get(ZONE_RADIATION_TRIGGER_ENABLED, True),
             ): selector.BooleanSelector(),
+            vol.Optional(
+                ZONE_SOIL_MOISTURE_ENTITIES,
+                default=list(defaults.get(ZONE_SOIL_MOISTURE_ENTITIES) or []),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="humidity",
+                    multiple=True,
+                    exclude_entities=list(exclude_moisture_entities),
+                )
+            ),
+            vol.Required(
+                ZONE_SOIL_MOISTURE_TRIGGER_ENABLED,
+                default=defaults.get(ZONE_SOIL_MOISTURE_TRIGGER_ENABLED, False),
+            ): selector.BooleanSelector(),
+            vol.Required(
+                ZONE_SOIL_MOISTURE_THRESHOLD,
+                default=defaults.get(
+                    ZONE_SOIL_MOISTURE_THRESHOLD, DEFAULT_SOIL_MOISTURE_THRESHOLD
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, max=100, step=1, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
+            vol.Required(
+                ZONE_SOIL_MOISTURE_DWELL_MINUTES,
+                default=defaults.get(
+                    ZONE_SOIL_MOISTURE_DWELL_MINUTES,
+                    DEFAULT_SOIL_MOISTURE_DWELL_MINUTES,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, max=240, step=1, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
+            vol.Required(
+                ZONE_MIN_INTERVAL_MINUTES,
+                default=defaults.get(
+                    ZONE_MIN_INTERVAL_MINUTES, DEFAULT_MIN_INTERVAL_MINUTES
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, max=1440, step=5, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
         }
     )
 
@@ -270,12 +329,28 @@ def _normalize_zone_input(user_input: dict[str, Any]) -> dict[str, Any]:
     )
     out[ZONE_MAX_RUNS_24H] = int(out.get(ZONE_MAX_RUNS_24H, DEFAULT_MAX_RUNS_24H))
     out[ZONE_FALLBACK_MINUTES] = int(out.get(ZONE_FALLBACK_MINUTES, DEFAULT_FALLBACK_MINUTES))
+    out[ZONE_SOIL_MOISTURE_DWELL_MINUTES] = int(
+        out.get(
+            ZONE_SOIL_MOISTURE_DWELL_MINUTES, DEFAULT_SOIL_MOISTURE_DWELL_MINUTES
+        )
+    )
+    out[ZONE_MIN_INTERVAL_MINUTES] = int(
+        out.get(ZONE_MIN_INTERVAL_MINUTES, DEFAULT_MIN_INTERVAL_MINUTES)
+    )
+    out[ZONE_SOIL_MOISTURE_TRIGGER_ENABLED] = bool(
+        out.get(ZONE_SOIL_MOISTURE_TRIGGER_ENABLED, False)
+    )
+    raw_sensors = out.get(ZONE_SOIL_MOISTURE_ENTITIES) or []
+    if isinstance(raw_sensors, str):
+        raw_sensors = [raw_sensors]
+    out[ZONE_SOIL_MOISTURE_ENTITIES] = [str(s) for s in raw_sensors if s]
     for key in (
         ZONE_THRESHOLD_PLANTING,
         ZONE_THRESHOLD_FRUIT_SET,
         ZONE_THRESHOLD_RIPENING,
         ZONE_POWER_MIN,
         ZONE_POWER_MAX,
+        ZONE_SOIL_MOISTURE_THRESHOLD,
     ):
         out[key] = float(out.get(key, 0))
     if not out.get(ZONE_POWER_ENTITY):
@@ -342,6 +417,22 @@ class IrrigationComputerOptionsFlow(OptionsFlow):
     @property
     def _zones(self) -> list[dict[str, Any]]:
         return list(self.config_entry.options.get(OPT_ZONES, []))
+
+    def _own_average_moisture_entity_ids(self) -> list[str]:
+        """Return entity_ids of all ``average_soil_moisture`` sensors owned by
+        this config entry.
+
+        Selecting them as moisture inputs would create a feedback loop on the
+        zone's own mean, so we hide them from the picker via ``exclude_entities``.
+        """
+        ent_reg = er.async_get(self.hass)
+        suffix = "_average_soil_moisture"
+        return [
+            e.entity_id
+            for e in ent_reg.entities.values()
+            if e.config_entry_id == self.config_entry.entry_id
+            and (e.unique_id or "").endswith(suffix)
+        ]
 
     def _zone_choices(self) -> dict[str, str]:
         return {
@@ -439,7 +530,10 @@ class IrrigationComputerOptionsFlow(OptionsFlow):
 
         return self.async_show_form(
             step_id="add_zone",
-            data_schema=_zone_schema(user_input or {}),
+            data_schema=_zone_schema(
+                user_input or {},
+                exclude_moisture_entities=self._own_average_moisture_entity_ids(),
+            ),
             errors=errors,
         )
 
@@ -500,7 +594,10 @@ class IrrigationComputerOptionsFlow(OptionsFlow):
 
         return self.async_show_form(
             step_id="edit_zone",
-            data_schema=_zone_schema(user_input or existing),
+            data_schema=_zone_schema(
+                user_input or existing,
+                exclude_moisture_entities=self._own_average_moisture_entity_ids(),
+            ),
             errors=errors,
         )
 

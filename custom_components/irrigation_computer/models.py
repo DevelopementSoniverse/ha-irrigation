@@ -11,9 +11,12 @@ from .const import (
     DEFAULT_FALLBACK_MINUTES,
     DEFAULT_FALLBACK_START,
     DEFAULT_MAX_RUNS_24H,
+    DEFAULT_MIN_INTERVAL_MINUTES,
     DEFAULT_POWER_ALERT_DELAY,
     DEFAULT_POWER_MAX,
     DEFAULT_POWER_MIN,
+    DEFAULT_SOIL_MOISTURE_DWELL_MINUTES,
+    DEFAULT_SOIL_MOISTURE_THRESHOLD,
     DEFAULT_THRESHOLD_FRUIT_SET,
     DEFAULT_THRESHOLD_PLANTING,
     DEFAULT_THRESHOLD_RIPENING,
@@ -27,6 +30,7 @@ from .const import (
     ZONE_FALLBACK_MINUTES,
     ZONE_FALLBACK_START,
     ZONE_ID,
+    ZONE_MIN_INTERVAL_MINUTES,
     ZONE_NAME,
     ZONE_PHASE,
     ZONE_MAX_RUNS_24H,
@@ -36,11 +40,27 @@ from .const import (
     ZONE_POWER_MIN,
     ZONE_RADIATION_TRIGGER_ENABLED,
     ZONE_RELAY_ENTITY,
+    ZONE_SOIL_MOISTURE_DWELL_MINUTES,
+    ZONE_SOIL_MOISTURE_ENTITIES,
+    ZONE_SOIL_MOISTURE_THRESHOLD,
+    ZONE_SOIL_MOISTURE_TRIGGER_ENABLED,
     ZONE_THRESHOLD_FRUIT_SET,
     ZONE_THRESHOLD_PLANTING,
     ZONE_THRESHOLD_RIPENING,
     ZONE_WATERING_DURATION,
 )
+
+
+def _coerce_entity_list(value: Any) -> list[str]:
+    """Normalize an entity-id list from config storage or user input."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value] if value else []
+    try:
+        return [str(v) for v in value if v]
+    except TypeError:
+        return []
 
 
 @dataclass
@@ -65,6 +85,11 @@ class ZoneConfig:
     fallback_start: str = DEFAULT_FALLBACK_START
     fallback_end: str = DEFAULT_FALLBACK_END
     radiation_trigger_enabled: bool = True
+    soil_moisture_entity_ids: list[str] = field(default_factory=list)
+    soil_moisture_trigger_enabled: bool = False
+    soil_moisture_threshold: float = DEFAULT_SOIL_MOISTURE_THRESHOLD
+    soil_moisture_dwell_minutes: int = DEFAULT_SOIL_MOISTURE_DWELL_MINUTES
+    min_interval_minutes: int = DEFAULT_MIN_INTERVAL_MINUTES
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to plain dict for storage in config entry options."""
@@ -108,6 +133,26 @@ class ZoneConfig:
             radiation_trigger_enabled=bool(
                 data.get(ZONE_RADIATION_TRIGGER_ENABLED, True)
             ),
+            soil_moisture_entity_ids=_coerce_entity_list(
+                data.get(ZONE_SOIL_MOISTURE_ENTITIES)
+            ),
+            soil_moisture_trigger_enabled=bool(
+                data.get(ZONE_SOIL_MOISTURE_TRIGGER_ENABLED, False)
+            ),
+            soil_moisture_threshold=float(
+                data.get(
+                    ZONE_SOIL_MOISTURE_THRESHOLD, DEFAULT_SOIL_MOISTURE_THRESHOLD
+                )
+            ),
+            soil_moisture_dwell_minutes=int(
+                data.get(
+                    ZONE_SOIL_MOISTURE_DWELL_MINUTES,
+                    DEFAULT_SOIL_MOISTURE_DWELL_MINUTES,
+                )
+            ),
+            min_interval_minutes=int(
+                data.get(ZONE_MIN_INTERVAL_MINUTES, DEFAULT_MIN_INTERVAL_MINUTES)
+            ),
         )
 
     def current_threshold(self) -> float:
@@ -130,6 +175,7 @@ class ZoneRuntimeState:
     accumulated_radiation_at_last_run: float = 0.0
     last_relay_error: str | None = None
     run_history: list[float] = field(default_factory=list)
+    moisture_below_since: datetime | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -142,6 +188,11 @@ class ZoneRuntimeState:
             ),
             "last_relay_error": self.last_relay_error,
             "run_history": list(self.run_history),
+            "moisture_below_since": (
+                self.moisture_below_since.isoformat()
+                if self.moisture_below_since
+                else None
+            ),
         }
 
     @classmethod
@@ -164,4 +215,5 @@ class ZoneRuntimeState:
             ),
             last_relay_error=data.get("last_relay_error"),
             run_history=[float(x) for x in data.get("run_history", []) if x],
+            moisture_below_since=_parse_dt(data.get("moisture_below_since")),
         )

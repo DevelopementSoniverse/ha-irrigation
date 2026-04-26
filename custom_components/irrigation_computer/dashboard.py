@@ -103,6 +103,31 @@ def _radiation_gauge_card(
     }
 
 
+def _moisture_gauge_card(
+    entity_id: str, threshold: float, zone_name: str
+) -> dict[str, Any]:
+    """Return a gauge card visualising the zone's average soil moisture.
+
+    The blue segment marks the range in which irrigation starts (i.e. the
+    moisture has fallen at or below the configured threshold), mirroring
+    the semantics of the radiation gauge where the blue band also marks
+    'irrigation about to fire'.
+    """
+    safe_threshold = max(min(float(threshold), 100.0), 0.0)
+    return {
+        "type": "gauge",
+        "entity": entity_id,
+        "name": f"{zone_name}: Mittlere Bodenfeuchte",
+        "needle": True,
+        "min": 0,
+        "max": 100,
+        "segments": [
+            {"from": 0, "color": "#00bcd4", "label": "Irrigation"},
+            {"from": safe_threshold, "color": "#9e9e9e"},
+        ],
+    }
+
+
 def _zone_view_path(zone: ZoneConfig) -> str:
     """Return stable Lovelace subview path for a zone."""
     return f"zone-{zone.zone_id[:8]}"
@@ -178,9 +203,33 @@ def _zone_overview_stack(
     current_power = entity_map.get("current_power")
     time_since = entity_map.get("time_since_last_irrigation")
     runs_24h = entity_map.get("runs_24h")
+    moisture_eid = entity_map.get("average_soil_moisture")
 
-    cards: list[dict[str, Any]] = [
-        _radiation_gauge_card(radiation_eid, zone.current_threshold(), zone.name),
+    gauges: list[dict[str, Any]] = []
+    if zone.radiation_trigger_enabled:
+        gauges.append(
+            _radiation_gauge_card(
+                radiation_eid, zone.current_threshold(), zone.name
+            )
+        )
+    if (
+        zone.soil_moisture_trigger_enabled
+        and zone.soil_moisture_entity_ids
+        and moisture_eid is not None
+    ):
+        gauges.append(
+            _moisture_gauge_card(
+                moisture_eid, zone.soil_moisture_threshold, zone.name
+            )
+        )
+
+    cards: list[dict[str, Any]] = []
+    if len(gauges) == 1:
+        cards.append(gauges[0])
+    elif len(gauges) >= 2:
+        cards.append({"type": "horizontal-stack", "cards": gauges})
+
+    cards.append(
         {
             "type": "grid",
             "columns": 3,
@@ -209,8 +258,8 @@ def _zone_overview_stack(
                     navigation_path=f"/{DASHBOARD_URL_PATH}/{_zone_view_path(zone)}",
                 ),
             ],
-        },
-    ]
+        }
+    )
 
     metric_cards: list[dict[str, Any]] = []
     if current_power:
@@ -307,6 +356,17 @@ def _zone_settings_view(
                 entity_map.get("fallback_minutes"),
                 entity_map.get("fallback_start"),
                 entity_map.get("fallback_end"),
+            ],
+        ),
+        _entities_card(
+            "Bodenfeuchte",
+            [
+                entity_map.get("soil_moisture_trigger_enabled"),
+                entity_map.get("average_soil_moisture"),
+                entity_map.get("soil_moisture_threshold"),
+                entity_map.get("soil_moisture_dwell_minutes"),
+                entity_map.get("min_interval_minutes"),
+                *list(zone.soil_moisture_entity_ids),
             ],
         ),
     ]

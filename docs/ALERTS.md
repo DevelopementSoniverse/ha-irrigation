@@ -47,6 +47,7 @@ column matches the value of `sensor.<zone>_relay_error` after the incident.
 | `power_sensor_invalid_after_off` | Power sensor returned a value that cannot be parsed as a number after stop | Cannot verify the motor has stopped | Persistent + push |
 | `run_timeout` | Zone is still marked as running `watering_duration + 5 s` after it was started | Run is **not force-stopped**, but surfaces a potential stuck-task condition | Persistent + push |
 | `too_many_runs_24h` | Number of runs in the last 24 h exceeded the configured *“24h run alert threshold”* (set to `0` to disable) | **Informational** – the current run and future scheduling are not blocked | Persistent + push |
+| `soil_moisture_sensors_unavailable` | Soil-moisture trigger is enabled for a zone but none of the configured sensors returned a valid numeric reading at the current tick | Trigger cannot evaluate; the dwell timer is intentionally kept as-is (no reset) so a brief sensor outage does not restart the countdown. Cleared automatically as soon as at least one sensor delivers a value | Persistent + push |
 
 ### Delayed power check
 

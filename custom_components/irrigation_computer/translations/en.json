@@ -56,7 +56,12 @@
           "fallback_minutes": "Fallback interval (min)",
           "fallback_start": "Fallback active from (HH:MM)",
           "fallback_end": "Fallback active until (HH:MM)",
-          "radiation_trigger_enabled": "Radiation trigger enabled"
+          "radiation_trigger_enabled": "Radiation trigger enabled",
+          "soil_moisture_entity_ids": "Soil moisture sensors (optional, one or more)",
+          "soil_moisture_trigger_enabled": "Soil moisture trigger enabled",
+          "soil_moisture_threshold": "Soil moisture threshold (%)",
+          "soil_moisture_dwell_minutes": "Soil moisture dwell time (min)",
+          "min_interval_minutes": "Minimum interval between runs (min, 0 = disabled)"
         }
       },
       "edit_zone_select": {
@@ -84,7 +89,12 @@
           "fallback_minutes": "Fallback interval (min)",
           "fallback_start": "Fallback active from (HH:MM)",
           "fallback_end": "Fallback active until (HH:MM)",
-          "radiation_trigger_enabled": "Radiation trigger enabled"
+          "radiation_trigger_enabled": "Radiation trigger enabled",
+          "soil_moisture_entity_ids": "Soil moisture sensors (optional, one or more)",
+          "soil_moisture_trigger_enabled": "Soil moisture trigger enabled",
+          "soil_moisture_threshold": "Soil moisture threshold (%)",
+          "soil_moisture_dwell_minutes": "Soil moisture dwell time (min)",
+          "min_interval_minutes": "Minimum interval between runs (min, 0 = disabled)"
         }
       },
       "delete_zone_select": {
@@ -115,7 +125,7 @@
       "description": "Start a single irrigation zone.",
       "fields": {
         "zone_id": {"name": "Zone ID", "description": "ID of the zone to start"},
-        "reason": {"name": "Reason", "description": "Reason (Manual / Radiation / Fallback)"}
+        "reason": {"name": "Reason", "description": "Reason (Manual / Radiation / Fallback / Soil moisture)"}
       }
     },
     "stop_zone": {

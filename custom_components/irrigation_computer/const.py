@@ -34,10 +34,16 @@ ZONE_FALLBACK_MINUTES: Final = "fallback_minutes"
 ZONE_FALLBACK_START: Final = "fallback_start"
 ZONE_FALLBACK_END: Final = "fallback_end"
 ZONE_RADIATION_TRIGGER_ENABLED: Final = "radiation_trigger_enabled"
+ZONE_SOIL_MOISTURE_ENTITIES: Final = "soil_moisture_entity_ids"
+ZONE_SOIL_MOISTURE_TRIGGER_ENABLED: Final = "soil_moisture_trigger_enabled"
+ZONE_SOIL_MOISTURE_THRESHOLD: Final = "soil_moisture_threshold"
+ZONE_SOIL_MOISTURE_DWELL_MINUTES: Final = "soil_moisture_dwell_minutes"
+ZONE_MIN_INTERVAL_MINUTES: Final = "min_interval_minutes"
 
 # Radiation units
 UNIT_W_PER_M2: Final = "W/m²"
 UNIT_WH_PER_M2: Final = "Wh/m²"
+UNIT_PERCENT: Final = "%"
 
 # Phase enum values (string)
 PHASE_PLANTING: Final = "Planting"
@@ -49,7 +55,8 @@ PHASES: Final = (PHASE_PLANTING, PHASE_FRUIT_SET, PHASE_RIPENING)
 REASON_MANUAL: Final = "Manual"
 REASON_RADIATION: Final = "Radiation"
 REASON_FALLBACK: Final = "Fallback"
-REASONS: Final = (REASON_MANUAL, REASON_RADIATION, REASON_FALLBACK)
+REASON_MOISTURE: Final = "Soil moisture"
+REASONS: Final = (REASON_MANUAL, REASON_RADIATION, REASON_FALLBACK, REASON_MOISTURE)
 
 # Defaults
 DEFAULT_PUSH_ALERTS_ENABLED: Final = False
@@ -65,6 +72,9 @@ DEFAULT_FALLBACK_MINUTES: Final = 60
 DEFAULT_FALLBACK_START: Final = "06:00:00"
 DEFAULT_FALLBACK_END: Final = "20:00:00"
 DEFAULT_RADIATION_SOURCE_UNIT: Final = UNIT_W_PER_M2
+DEFAULT_SOIL_MOISTURE_THRESHOLD: Final = 30.0
+DEFAULT_SOIL_MOISTURE_DWELL_MINUTES: Final = 15
+DEFAULT_MIN_INTERVAL_MINUTES: Final = 30
 
 # Coordinator
 UPDATE_INTERVAL_SECONDS: Final = 30

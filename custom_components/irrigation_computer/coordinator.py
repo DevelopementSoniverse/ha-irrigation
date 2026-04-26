@@ -37,6 +37,7 @@ from .const import (
     RADIATION_STALE_SECONDS,
     REASON_FALLBACK,
     REASON_MANUAL,
+    REASON_MOISTURE,
     REASON_RADIATION,
     STORAGE_KEY,
     STORAGE_VERSION,
@@ -200,6 +201,33 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             return 0.0
         return max(0.0, self._radiation_total_wh - rt.accumulated_radiation_at_last_run)
 
+    def average_soil_moisture(self, zone_id: str) -> tuple[float | None, int]:
+        """Return ``(average_percent, valid_sensor_count)`` for a zone.
+
+        Non-numeric, missing, ``unavailable`` or ``unknown`` states are skipped.
+        ``(None, 0)`` indicates that no sensor produced a usable reading.
+        """
+        zone = self._zones.get(zone_id)
+        if zone is None or not zone.soil_moisture_entity_ids:
+            return None, 0
+        values: list[float] = []
+        for eid in zone.soil_moisture_entity_ids:
+            state = self.hass.states.get(eid)
+            if state is None or state.state in (
+                None,
+                "",
+                STATE_UNKNOWN,
+                STATE_UNAVAILABLE,
+            ):
+                continue
+            try:
+                values.append(float(state.state))
+            except (TypeError, ValueError):
+                continue
+        if not values:
+            return None, 0
+        return sum(values) / len(values), len(values)
+
     # ----------------------------------------------------------- radiation
 
     @callback
@@ -282,9 +310,48 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         if rt is None or rt.is_running:
             return
 
+        # Global min-interval gate: applies to ALL automatic triggers
+        # (radiation, fallback, soil moisture). Manual starts via service /
+        # button bypass this because they don't go through this evaluator.
+        if (
+            zone.min_interval_minutes > 0
+            and rt.last_run_at is not None
+            and (now - rt.last_run_at).total_seconds() / 60.0
+            < zone.min_interval_minutes
+        ):
+            return
+
+        # Soil moisture trigger – intentionally evaluated outside the fallback
+        # time window because moisture-driven irrigation should work 24/7.
+        if zone.soil_moisture_trigger_enabled and zone.soil_moisture_entity_ids:
+            avg, valid = self.average_soil_moisture(zone.zone_id)
+            suffix = f"soil_moisture_sensors_unavailable_{zone.zone_id}"
+            if valid == 0:
+                # Leave moisture_below_since unchanged to avoid oscillating
+                # when a single sensor drops out briefly.
+                await self._async_notify_once(
+                    suffix,
+                    f"Soil moisture sensors unavailable for {zone.name}",
+                    f"Zone {zone.name} has a soil-moisture trigger enabled but "
+                    "none of the configured sensors produced a valid reading.",
+                )
+            else:
+                self._clear_alert(suffix)
+                if avg is not None and avg >= zone.soil_moisture_threshold:
+                    rt.moisture_below_since = None
+                else:
+                    if rt.moisture_below_since is None:
+                        rt.moisture_below_since = now
+                    dwell = (now - rt.moisture_below_since).total_seconds() / 60.0
+                    if dwell >= max(0, zone.soil_moisture_dwell_minutes):
+                        await self.async_start_zone(
+                            zone.zone_id, REASON_MOISTURE
+                        )
+                        return
+
         if not in_fallback_window(zone, now.time()):
-            # Triggers only fire while we are inside the configured time window
-            # (this preserves the original semantics from the YAML automation).
+            # Radiation + fallback triggers only fire while we are inside the
+            # configured time window (preserves the original YAML semantics).
             return
 
         # Radiation trigger
@@ -337,6 +404,7 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             rt.run_history.append(now.timestamp())
             rt.run_history = _trim_runs(rt.run_history, now)
             rt.last_relay_error = None
+            rt.moisture_below_since = None
             self._clear_zone_alerts(zone.zone_id)
             self.async_update_listeners()
 

@@ -22,6 +22,7 @@ from .const import (
     ZONE_FALLBACK_ENABLED,
     ZONE_ID,
     ZONE_RADIATION_TRIGGER_ENABLED,
+    ZONE_SOIL_MOISTURE_TRIGGER_ENABLED,
 )
 from .coordinator import IrrigationController
 from .entity import IrrigationZoneEntity
@@ -41,6 +42,7 @@ async def async_setup_entry(
                 ZoneRunningSwitch(controller, zone),
                 ZoneFallbackEnabledSwitch(controller, zone),
                 ZoneRadiationTriggerEnabledSwitch(controller, zone),
+                ZoneSoilMoistureTriggerEnabledSwitch(controller, zone),
             ]
         )
     async_add_entities(entities)
@@ -139,5 +141,36 @@ class ZoneRadiationTriggerEnabledSwitch(_ZoneSwitchBase):
             self._controller,
             self._zone_id,
             ZONE_RADIATION_TRIGGER_ENABLED,
+            False,
+        )
+
+
+class ZoneSoilMoistureTriggerEnabledSwitch(_ZoneSwitchBase):
+    _attr_name = "Soil moisture trigger enabled"
+    _attr_icon = "mdi:water-percent-alert"
+
+    def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:
+        super().__init__(controller, zone, "soil_moisture_trigger_enabled")
+
+    @property
+    def is_on(self) -> bool:
+        zone = self.zone
+        return bool(zone and zone.soil_moisture_trigger_enabled)
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        _update_zone_option(
+            self.hass,
+            self._controller,
+            self._zone_id,
+            ZONE_SOIL_MOISTURE_TRIGGER_ENABLED,
+            True,
+        )
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        _update_zone_option(
+            self.hass,
+            self._controller,
+            self._zone_id,
+            ZONE_SOIL_MOISTURE_TRIGGER_ENABLED,
             False,
         )

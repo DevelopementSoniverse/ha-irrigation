@@ -12,6 +12,13 @@ Key features:
 - **Radiation-driven trigger**: a single global solar-radiation sensor is
   trapezoidally integrated to Wh/m². Each zone tracks its own
   *radiation-since-last-irrigation* counter that resets when that zone runs.
+- **Soil-moisture trigger** *(optional per zone)*: attach any number of
+  moisture sensors; when their average stays below a configurable threshold
+  for a configurable dwell time, the zone starts. Independent of the
+  radiation trigger – enable either, both or neither.
+- **Minimum-interval guard**: per zone, a configurable minimum interval
+  between two automatic runs applies to radiation, moisture and fallback
+  triggers (manual start always wins).
 - **Fallback trigger**: per zone, configurable interval + active time window.
 - **Manual control**: per-zone start/stop button + service + writable
   *Run* switch.
@@ -80,10 +87,12 @@ the device name + the entity name below.
 | sensor         | Current power                  | W (proxy to power_entity) |
 | sensor         | Runs 24h                       | count |
 | sensor         | Last run                       | timestamp |
-| sensor         | Last reason                    | Manual / Radiation / Fallback |
+| sensor         | Last reason                    | Manual / Radiation / Fallback / Soil moisture |
+| sensor         | Average soil moisture          | % (mean of configured moisture sensors) |
 | switch         | Run                            | Manual on/off |
 | switch         | Fallback enabled               | Toggle fallback trigger |
 | switch         | Radiation trigger enabled      | Toggle radiation trigger |
+| switch         | Soil moisture trigger enabled  | Toggle soil-moisture trigger |
 | button         | Start irrigation               |  |
 | button         | Stop irrigation                |  |
 | button         | Reset radiation counter        |  |
@@ -93,6 +102,9 @@ the device name + the entity name below.
 | number         | Undercurrent / Overcurrent threshold | W |
 | number         | Max runs 24h alert threshold   | count (0 disables alert) |
 | number         | Fallback interval              | min |
+| number         | Soil moisture threshold        | % |
+| number         | Soil moisture dwell time       | min (how long the average must stay below the threshold) |
+| number         | Minimum interval between runs  | min (applies to all automatic triggers; 0 disables) |
 | select         | Growth phase                   | Planting / Fruit Set / Ripening |
 | time           | Fallback start / Fallback end  | HH:MM:SS |
 
@@ -137,8 +149,11 @@ card per zone (plus a controller card).
 ## Test environment
 
 A complete dockerised test setup with a pre-provisioned admin user and
-simulated relays / radiation sensor lives under [`docker/`](docker/). See
-[`docker/README.md`](docker/README.md).
+simulated relays / radiation sensor / soil moisture sliders lives under
+[`docker/`](docker/). The mocks include `sensor.mock_soil_moisture_a` and
+`sensor.mock_soil_moisture_b` (each backed by an `input_number` slider
+`0–100 %`) so you can verify the moisture trigger end-to-end without any
+physical hardware. See [`docker/README.md`](docker/README.md).
 
 ## Migration from the old YAML package
 

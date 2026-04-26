@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, REASONS, UNIT_WH_PER_M2
+from .const import DOMAIN, REASONS, UNIT_PERCENT, UNIT_WH_PER_M2
 from .coordinator import IrrigationController
 from .entity import IrrigationControllerEntity, IrrigationZoneEntity
 from .models import ZoneConfig
@@ -39,6 +39,7 @@ async def async_setup_entry(
                 Runs24hSensor(controller, zone),
                 LastRunSensor(controller, zone),
                 LastReasonSensor(controller, zone),
+                AverageSoilMoistureSensor(controller, zone),
             ]
         )
     async_add_entities(entities)
@@ -203,3 +204,42 @@ class LastReasonSensor(_ZoneSensorBase):
     def native_value(self) -> str | None:
         rt = self._controller.get_runtime(self._zone_id)
         return rt.last_reason if rt else None
+
+
+class AverageSoilMoistureSensor(_ZoneSensorBase):
+    _attr_name = "Average soil moisture"
+    _attr_device_class = SensorDeviceClass.HUMIDITY
+    _attr_native_unit_of_measurement = UNIT_PERCENT
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:water-percent"
+
+    def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:
+        super().__init__(controller, zone, "average_soil_moisture")
+
+    @property
+    def native_value(self) -> float | None:
+        avg, valid = self._controller.average_soil_moisture(self._zone_id)
+        if avg is None or valid == 0:
+            return None
+        return round(avg, 1)
+
+    @property
+    def available(self) -> bool:
+        if not super().available:
+            return False
+        zone = self.zone
+        if zone is None or not zone.soil_moisture_entity_ids:
+            return False
+        _, valid = self._controller.average_soil_moisture(self._zone_id)
+        return valid > 0
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        zone = self.zone
+        if zone is None:
+            return {}
+        _, valid = self._controller.average_soil_moisture(self._zone_id)
+        return {
+            "source_entity_ids": list(zone.soil_moisture_entity_ids),
+            "valid_sensors": valid,
+        }

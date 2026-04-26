@@ -15,6 +15,8 @@ logger:
 #   - switch.mock_relay_a / _b                (template switches backed by
 #                                              the input_booleans, real switch domain)
 #   - sensor.mock_relay_a_power / _b_power    (50 W when on, 0 W when off)
+#   - input_number.mock_soil_moisture_a / _b  (slider 0–100 %)
+#   - sensor.mock_soil_moisture_a / _b        (template, in %)
 # ---------------------------------------------------------------------------
 
 input_number:
@@ -26,6 +28,24 @@ input_number:
     step: 10
     initial: 0
     unit_of_measurement: "W/m²"
+    mode: slider
+  mock_soil_moisture_a:
+    name: Mock Soil Moisture A
+    icon: mdi:water-percent
+    min: 0
+    max: 100
+    step: 1
+    initial: 50
+    unit_of_measurement: "%"
+    mode: slider
+  mock_soil_moisture_b:
+    name: Mock Soil Moisture B
+    icon: mdi:water-percent
+    min: 0
+    max: 100
+    step: 1
+    initial: 50
+    unit_of_measurement: "%"
     mode: slider
 
 input_boolean:
@@ -60,6 +80,20 @@ template:
         state_class: measurement
         state: >-
           {% if is_state('input_boolean.mock_relay_b', 'on') %}50{% else %}0{% endif %}
+
+      - name: Mock Soil Moisture A
+        unique_id: mock_soil_moisture_a
+        unit_of_measurement: "%"
+        device_class: humidity
+        state_class: measurement
+        state: "{{ states('input_number.mock_soil_moisture_a') | float(0) }}"
+
+      - name: Mock Soil Moisture B
+        unique_id: mock_soil_moisture_b
+        unit_of_measurement: "%"
+        device_class: humidity
+        state_class: measurement
+        state: "{{ states('input_number.mock_soil_moisture_b') | float(0) }}"
 
   - switch:
       - name: Mock Relay A
