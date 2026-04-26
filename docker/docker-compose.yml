@@ -1,0 +1,27 @@
+services:
+  init:
+    image: python:3.12-alpine
+    container_name: irrigation_computer_init
+    working_dir: /init
+    volumes:
+      - ./config:/config
+      - ./init:/init
+    command: >-
+      sh -c "pip install --quiet --no-cache-dir bcrypt &&
+             python /init/provision.py /config"
+    restart: "no"
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: irrigation_computer_ha
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    environment:
+      TZ: Europe/Berlin
+    volumes:
+      - ./config:/config
+      - ../custom_components/irrigation_computer:/config/custom_components/irrigation_computer:ro
+    ports:
+      - "${HA_PORT:-8123}:8123"
+    restart: unless-stopped

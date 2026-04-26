@@ -1,0 +1,57 @@
+start_zone:
+  name: Start zone
+  description: Start an irrigation zone.
+  fields:
+    zone_id:
+      name: Zone ID
+      description: ID of the zone to start.
+      required: true
+      selector:
+        text:
+    reason:
+      name: Reason
+      description: Reason for the run (Manual / Radiation / Fallback).
+      required: false
+      selector:
+        select:
+          options:
+            - Manual
+            - Radiation
+            - Fallback
+
+stop_zone:
+  name: Stop zone
+  description: Stop a running irrigation zone.
+  fields:
+    zone_id:
+      name: Zone ID
+      description: ID of the zone to stop.
+      required: true
+      selector:
+        text:
+
+reset_radiation:
+  name: Reset radiation counter
+  description: Reset the radiation-since-last-irrigation counter for a zone.
+  fields:
+    zone_id:
+      name: Zone ID
+      description: ID of the zone.
+      required: true
+      selector:
+        text:
+
+start_all:
+  name: Start all zones
+  description: Run all configured zones sequentially.
+  fields:
+    reason:
+      name: Reason
+      description: Reason for the run.
+      required: false
+      selector:
+        select:
+          options:
+            - Manual
+            - Radiation
+            - Fallback

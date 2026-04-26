@@ -1,0 +1,13 @@
+{
+  "domain": "irrigation_computer",
+  "name": "Irrigation Computer",
+  "version": "0.1.0",
+  "codeowners": ["@DevelopementSoniverse"],
+  "config_flow": true,
+  "documentation": "https://github.com/DevelopementSoniverse/irrigation-computer",
+  "issue_tracker": "https://github.com/DevelopementSoniverse/irrigation-computer/issues",
+  "iot_class": "calculated",
+  "integration_type": "hub",
+  "requirements": [],
+  "dependencies": []
+}

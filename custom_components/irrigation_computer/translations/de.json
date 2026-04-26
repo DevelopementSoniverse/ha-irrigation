@@ -1,0 +1,135 @@
+{
+  "title": "Bewässerungscomputer",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Bewässerungscomputer",
+        "description": "Globale Strahlungsquelle konfigurieren. Zonen können danach in den Optionen angelegt werden.",
+        "data": {
+          "radiation_source_entity": "Strahlungssensor (z.B. Solarstrahlung)",
+          "radiation_source_unit": "Einheit der Strahlungsquelle"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Es ist nur eine Instanz erlaubt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Bewässerungscomputer",
+        "menu_options": {
+          "global_settings": "Globale Einstellungen",
+          "add_zone": "Zone hinzufügen",
+          "edit_zone_select": "Zone bearbeiten",
+          "delete_zone_select": "Zone löschen"
+        }
+      },
+      "global_settings": {
+        "title": "Globale Einstellungen",
+        "data": {
+          "radiation_source_entity": "Strahlungssensor",
+          "radiation_source_unit": "Einheit der Strahlungsquelle"
+        }
+      },
+      "add_zone": {
+        "title": "Zone hinzufügen",
+        "data": {
+          "name": "Zonenname",
+          "relay_entity_id": "Relais-Switch-Entity",
+          "power_entity_id": "Leistungssensor (optional, Auto-Derive falls leer)",
+          "watering_duration_sec": "Bewässerungsdauer (Sekunden)",
+          "phase": "Wachstumsphase",
+          "threshold_planting": "Strahlungs-Schwellwert – Pflanzphase (Wh/m²)",
+          "threshold_fruit_set": "Strahlungs-Schwellwert – Fruchtansatz (Wh/m²)",
+          "threshold_ripening": "Strahlungs-Schwellwert – Reifephase (Wh/m²)",
+          "power_min": "Unterstrom-Schwellwert (W)",
+          "power_max": "Überstrom-Schwellwert (W)",
+          "fallback_enabled": "Fallback aktiv",
+          "fallback_minutes": "Fallback-Intervall (min)",
+          "fallback_start": "Fallback aktiv ab (HH:MM)",
+          "fallback_end": "Fallback aktiv bis (HH:MM)",
+          "radiation_trigger_enabled": "Strahlungs-Trigger aktiv"
+        }
+      },
+      "edit_zone_select": {
+        "title": "Zone zum Bearbeiten wählen",
+        "data": {
+          "zone_id": "Zone"
+        }
+      },
+      "edit_zone": {
+        "title": "Zone bearbeiten",
+        "data": {
+          "name": "Zonenname",
+          "relay_entity_id": "Relais-Switch-Entity",
+          "power_entity_id": "Leistungssensor (optional)",
+          "watering_duration_sec": "Bewässerungsdauer (Sekunden)",
+          "phase": "Wachstumsphase",
+          "threshold_planting": "Strahlungs-Schwellwert – Pflanzphase (Wh/m²)",
+          "threshold_fruit_set": "Strahlungs-Schwellwert – Fruchtansatz (Wh/m²)",
+          "threshold_ripening": "Strahlungs-Schwellwert – Reifephase (Wh/m²)",
+          "power_min": "Unterstrom-Schwellwert (W)",
+          "power_max": "Überstrom-Schwellwert (W)",
+          "fallback_enabled": "Fallback aktiv",
+          "fallback_minutes": "Fallback-Intervall (min)",
+          "fallback_start": "Fallback aktiv ab (HH:MM)",
+          "fallback_end": "Fallback aktiv bis (HH:MM)",
+          "radiation_trigger_enabled": "Strahlungs-Trigger aktiv"
+        }
+      },
+      "delete_zone_select": {
+        "title": "Zone löschen",
+        "data": {
+          "zone_id": "Zu löschende Zone",
+          "confirm": "Löschung bestätigen"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Name ist erforderlich",
+      "relay_required": "Relais-Entity ist erforderlich",
+      "invalid_time": "Zeit muss als HH:MM oder HH:MM:SS angegeben werden",
+      "fallback_minutes_range": "Fallback-Intervall muss zwischen 5 und 240 Minuten liegen",
+      "not_confirmed": "Bitte Löschung bestätigen"
+    },
+    "abort": {
+      "zone_added": "Zone hinzugefügt",
+      "zone_updated": "Zone aktualisiert",
+      "zone_deleted": "Zone gelöscht",
+      "global_updated": "Globale Einstellungen aktualisiert"
+    }
+  },
+  "services": {
+    "start_zone": {
+      "name": "Zone starten",
+      "description": "Eine einzelne Bewässerungszone starten.",
+      "fields": {
+        "zone_id": {"name": "Zone-ID", "description": "ID der zu startenden Zone"},
+        "reason": {"name": "Grund", "description": "Grund (Manual / Radiation / Fallback)"}
+      }
+    },
+    "stop_zone": {
+      "name": "Zone stoppen",
+      "description": "Eine laufende Zone stoppen.",
+      "fields": {
+        "zone_id": {"name": "Zone-ID", "description": "ID der zu stoppenden Zone"}
+      }
+    },
+    "reset_radiation": {
+      "name": "Strahlungs-Zähler zurücksetzen",
+      "description": "Strahlungs-seit-letzter-Bewässerung-Zähler einer Zone zurücksetzen.",
+      "fields": {
+        "zone_id": {"name": "Zone-ID", "description": "Zone, deren Zähler zurückgesetzt werden soll"}
+      }
+    },
+    "start_all": {
+      "name": "Alle Zonen starten",
+      "description": "Alle konfigurierten Zonen sequenziell ausführen.",
+      "fields": {
+        "reason": {"name": "Grund", "description": "Grund für den Lauf"}
+      }
+    }
+  }
+}

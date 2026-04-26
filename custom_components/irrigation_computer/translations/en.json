@@ -1,0 +1,135 @@
+{
+  "title": "Irrigation Computer",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Irrigation Computer",
+        "description": "Configure the global radiation source. Zones can be added afterwards via the integration's options.",
+        "data": {
+          "radiation_source_entity": "Radiation source sensor (e.g. solar irradiance)",
+          "radiation_source_unit": "Radiation source unit"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only a single instance is supported."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Irrigation Computer",
+        "menu_options": {
+          "global_settings": "Global settings",
+          "add_zone": "Add zone",
+          "edit_zone_select": "Edit zone",
+          "delete_zone_select": "Delete zone"
+        }
+      },
+      "global_settings": {
+        "title": "Global settings",
+        "data": {
+          "radiation_source_entity": "Radiation source sensor",
+          "radiation_source_unit": "Radiation source unit"
+        }
+      },
+      "add_zone": {
+        "title": "Add zone",
+        "data": {
+          "name": "Zone name",
+          "relay_entity_id": "Relay switch entity",
+          "power_entity_id": "Power sensor (optional, auto-derived if empty)",
+          "watering_duration_sec": "Watering duration (seconds)",
+          "phase": "Growth phase",
+          "threshold_planting": "Radiation threshold – Planting (Wh/m²)",
+          "threshold_fruit_set": "Radiation threshold – Fruit Set (Wh/m²)",
+          "threshold_ripening": "Radiation threshold – Ripening (Wh/m²)",
+          "power_min": "Undercurrent threshold (W)",
+          "power_max": "Overcurrent threshold (W)",
+          "fallback_enabled": "Fallback enabled",
+          "fallback_minutes": "Fallback interval (min)",
+          "fallback_start": "Fallback active from (HH:MM)",
+          "fallback_end": "Fallback active until (HH:MM)",
+          "radiation_trigger_enabled": "Radiation trigger enabled"
+        }
+      },
+      "edit_zone_select": {
+        "title": "Select zone to edit",
+        "data": {
+          "zone_id": "Zone"
+        }
+      },
+      "edit_zone": {
+        "title": "Edit zone",
+        "data": {
+          "name": "Zone name",
+          "relay_entity_id": "Relay switch entity",
+          "power_entity_id": "Power sensor (optional)",
+          "watering_duration_sec": "Watering duration (seconds)",
+          "phase": "Growth phase",
+          "threshold_planting": "Radiation threshold – Planting (Wh/m²)",
+          "threshold_fruit_set": "Radiation threshold – Fruit Set (Wh/m²)",
+          "threshold_ripening": "Radiation threshold – Ripening (Wh/m²)",
+          "power_min": "Undercurrent threshold (W)",
+          "power_max": "Overcurrent threshold (W)",
+          "fallback_enabled": "Fallback enabled",
+          "fallback_minutes": "Fallback interval (min)",
+          "fallback_start": "Fallback active from (HH:MM)",
+          "fallback_end": "Fallback active until (HH:MM)",
+          "radiation_trigger_enabled": "Radiation trigger enabled"
+        }
+      },
+      "delete_zone_select": {
+        "title": "Delete zone",
+        "data": {
+          "zone_id": "Zone to delete",
+          "confirm": "Confirm deletion"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Name is required",
+      "relay_required": "Relay entity is required",
+      "invalid_time": "Time must be in HH:MM or HH:MM:SS format",
+      "fallback_minutes_range": "Fallback interval must be between 5 and 240 minutes",
+      "not_confirmed": "Please confirm deletion"
+    },
+    "abort": {
+      "zone_added": "Zone added",
+      "zone_updated": "Zone updated",
+      "zone_deleted": "Zone deleted",
+      "global_updated": "Global settings updated"
+    }
+  },
+  "services": {
+    "start_zone": {
+      "name": "Start zone",
+      "description": "Start a single irrigation zone.",
+      "fields": {
+        "zone_id": {"name": "Zone ID", "description": "ID of the zone to start"},
+        "reason": {"name": "Reason", "description": "Reason (Manual / Radiation / Fallback)"}
+      }
+    },
+    "stop_zone": {
+      "name": "Stop zone",
+      "description": "Stop a running zone.",
+      "fields": {
+        "zone_id": {"name": "Zone ID", "description": "ID of the zone to stop"}
+      }
+    },
+    "reset_radiation": {
+      "name": "Reset radiation counter",
+      "description": "Reset the radiation-since-last-irrigation counter for a zone.",
+      "fields": {
+        "zone_id": {"name": "Zone ID", "description": "Zone whose counter should be reset"}
+      }
+    },
+    "start_all": {
+      "name": "Start all zones",
+      "description": "Run all configured zones sequentially.",
+      "fields": {
+        "reason": {"name": "Reason", "description": "Reason for the run"}
+      }
+    }
+  }
+}

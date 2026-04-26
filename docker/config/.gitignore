@@ -1,0 +1,14 @@
+# Runtime artifacts pulled in by Home Assistant.
+.storage/
+*.db
+*.db-*
+*.log
+.cloud
+.uuid
+deps/
+tts/
+custom_components/
+www/
+home-assistant.log*
+home-assistant_v2.db*
+secrets.yaml
