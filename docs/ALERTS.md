@@ -26,6 +26,13 @@ Zone alerts additionally update the zone's
 `sensor.<zone>_relay_error` entity (machine-readable error code) and are
 surfaced on the zone's dashboard card under *Alerts & Sicherheit*.
 
+> **Note on entity ids:** Entity names use Home Assistant's translation
+> system. For new installs, the suggested `entity_id` is derived from the
+> translated name in the language active at integration setup, so
+> `sensor.<zone>_relay_error` may appear as `sensor.<zone>_relaisfehler`
+> on a German install. Existing `entity_id`s are preserved; rename them in
+> *Settings → Devices & Services* if you need a specific suffix.
+
 ## Zone-level alerts
 
 Each row below is an alert that is raised for a single zone. The **Error code**

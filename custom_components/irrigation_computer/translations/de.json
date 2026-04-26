@@ -119,13 +119,96 @@
       "global_updated": "Globale Einstellungen aktualisiert"
     }
   },
+  "entity": {
+    "sensor": {
+      "global_radiation_energy": {"name": "Globale Strahlungsenergie"},
+      "time_since_last_irrigation": {"name": "Zeit seit letzter Bewässerung"},
+      "radiation_since_last_irrigation": {"name": "Strahlung seit letzter Bewässerung"},
+      "current_radiation_threshold": {"name": "Aktueller Strahlungs-Schwellwert"},
+      "current_power": {"name": "Aktuelle Leistung"},
+      "runs_24h": {"name": "Läufe 24 h"},
+      "last_run": {"name": "Letzter Lauf"},
+      "last_reason": {
+        "name": "Letzter Grund",
+        "state": {
+          "manual": "Manuell",
+          "radiation": "Strahlung",
+          "fallback": "Fallback",
+          "soil_moisture": "Bodenfeuchte"
+        }
+      },
+      "average_soil_moisture": {"name": "Durchschnittliche Bodenfeuchte"}
+    },
+    "binary_sensor": {
+      "running": {"name": "Läuft"},
+      "fallback_active": {"name": "Fallback aktiv"},
+      "relay_available": {"name": "Relais verfügbar"},
+      "relay_error": {"name": "Relaisfehler"}
+    },
+    "switch": {
+      "running": {"name": "Läuft"},
+      "fallback_enabled": {"name": "Fallback aktiv"},
+      "radiation_trigger_enabled": {"name": "Strahlungs-Trigger aktiv"},
+      "soil_moisture_trigger_enabled": {"name": "Bodenfeuchte-Trigger aktiv"}
+    },
+    "button": {
+      "start_irrigation": {"name": "Bewässerung starten"},
+      "stop_irrigation": {"name": "Bewässerung stoppen"},
+      "reset_radiation_counter": {"name": "Strahlungszähler zurücksetzen"}
+    },
+    "number": {
+      "watering_duration_sec": {"name": "Bewässerungsdauer"},
+      "threshold_planting": {"name": "Schwellwert Pflanzphase"},
+      "threshold_fruit_set": {"name": "Schwellwert Fruchtansatz"},
+      "threshold_ripening": {"name": "Schwellwert Reifephase"},
+      "power_alert_delay_sec": {"name": "Stromalarm-Verzögerung"},
+      "power_min": {"name": "Unterstrom-Schwellwert"},
+      "power_max": {"name": "Überstrom-Schwellwert"},
+      "max_runs_24h": {"name": "Alarm-Grenzwert Läufe in 24 h"},
+      "fallback_minutes": {"name": "Fallback-Intervall"},
+      "soil_moisture_threshold": {"name": "Bodenfeuchte-Schwellwert"},
+      "soil_moisture_dwell_minutes": {"name": "Bodenfeuchte-Haltezeit"},
+      "min_interval_minutes": {"name": "Mindestabstand zwischen Bewässerungen"}
+    },
+    "time": {
+      "fallback_start": {"name": "Fallback-Start"},
+      "fallback_end": {"name": "Fallback-Ende"}
+    },
+    "select": {
+      "phase": {
+        "name": "Wachstumsphase",
+        "state": {
+          "planting": "Pflanzphase",
+          "fruit_set": "Fruchtansatz",
+          "ripening": "Reifephase"
+        }
+      }
+    }
+  },
+  "selector": {
+    "phase": {
+      "options": {
+        "planting": "Pflanzphase",
+        "fruit_set": "Fruchtansatz",
+        "ripening": "Reifephase"
+      }
+    },
+    "reason": {
+      "options": {
+        "manual": "Manuell",
+        "radiation": "Strahlung",
+        "fallback": "Fallback",
+        "soil_moisture": "Bodenfeuchte"
+      }
+    }
+  },
   "services": {
     "start_zone": {
       "name": "Zone starten",
       "description": "Eine einzelne Bewässerungszone starten.",
       "fields": {
         "zone_id": {"name": "Zone-ID", "description": "ID der zu startenden Zone"},
-        "reason": {"name": "Grund", "description": "Grund (Manual / Radiation / Fallback / Soil moisture)"}
+        "reason": {"name": "Grund", "description": "Grund für den Lauf"}
       }
     },
     "stop_zone": {

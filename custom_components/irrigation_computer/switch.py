@@ -73,7 +73,7 @@ class _ZoneSwitchBase(IrrigationZoneEntity, SwitchEntity):
 
 
 class ZoneRunningSwitch(_ZoneSwitchBase):
-    _attr_name = "Run"
+    _attr_translation_key = "running"
     _attr_icon = "mdi:water-pump"
 
     def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:
@@ -92,7 +92,7 @@ class ZoneRunningSwitch(_ZoneSwitchBase):
 
 
 class ZoneFallbackEnabledSwitch(_ZoneSwitchBase):
-    _attr_name = "Fallback enabled"
+    _attr_translation_key = "fallback_enabled"
     _attr_icon = "mdi:clock-alert"
 
     def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:
@@ -115,7 +115,7 @@ class ZoneFallbackEnabledSwitch(_ZoneSwitchBase):
 
 
 class ZoneRadiationTriggerEnabledSwitch(_ZoneSwitchBase):
-    _attr_name = "Radiation trigger enabled"
+    _attr_translation_key = "radiation_trigger_enabled"
     _attr_icon = "mdi:weather-sunny-alert"
 
     def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:
@@ -146,7 +146,7 @@ class ZoneRadiationTriggerEnabledSwitch(_ZoneSwitchBase):
 
 
 class ZoneSoilMoistureTriggerEnabledSwitch(_ZoneSwitchBase):
-    _attr_name = "Soil moisture trigger enabled"
+    _attr_translation_key = "soil_moisture_trigger_enabled"
     _attr_icon = "mdi:water-percent-alert"
 
     def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:

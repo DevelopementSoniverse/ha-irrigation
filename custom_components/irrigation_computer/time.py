@@ -21,6 +21,12 @@ from .entity import IrrigationZoneEntity
 from .models import ZoneConfig
 
 
+_TIME_FIELDS: tuple[tuple[str, str], ...] = (
+    ("fallback_start", ZONE_FALLBACK_START),
+    ("fallback_end", ZONE_FALLBACK_END),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -29,8 +35,8 @@ async def async_setup_entry(
     controller: IrrigationController = hass.data[DOMAIN][entry.entry_id]
     entities: list = []
     for zone in controller.zones:
-        entities.append(FallbackTimeEntity(controller, zone, "fallback_start", ZONE_FALLBACK_START, "Fallback start"))
-        entities.append(FallbackTimeEntity(controller, zone, "fallback_end", ZONE_FALLBACK_END, "Fallback end"))
+        for key, field in _TIME_FIELDS:
+            entities.append(FallbackTimeEntity(controller, zone, key, field))
     async_add_entities(entities)
 
 
@@ -57,11 +63,10 @@ class FallbackTimeEntity(IrrigationZoneEntity, TimeEntity):
         zone: ZoneConfig,
         key: str,
         field: str,
-        name: str,
     ) -> None:
         super().__init__(controller, zone, key)
         self._field = field
-        self._attr_name = name
+        self._attr_translation_key = key
 
     @property
     def native_value(self) -> dtime | None:

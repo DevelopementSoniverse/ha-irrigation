@@ -24,7 +24,7 @@ async def async_setup_entry(
 
 
 class PhaseSelect(IrrigationZoneEntity, SelectEntity):
-    _attr_name = "Growth phase"
+    _attr_translation_key = "phase"
     _attr_icon = "mdi:sprout"
     _attr_options = list(PHASES)
 

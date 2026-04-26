@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_CORE_CONFIG_UPDATE, Platform
+from homeassistant.core import Event, HomeAssistant
 
 from .const import DOMAIN
 from .coordinator import IrrigationController
@@ -42,6 +42,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Rebuild the auto-managed Lovelace dashboard from the current zone list.
     # Runs after platform forwarding so the entity registry is populated.
     await async_update_dashboard(hass, controller)
+
+    # Rebuild the dashboard when HA's language changes, so card titles,
+    # button captions and gauge names pick up the new locale. Storage
+    # dashboards are not translated on the fly by Lovelace.
+    current_language = hass.config.language
+
+    async def _handle_core_config_update(event: Event) -> None:
+        nonlocal current_language
+        new_language = hass.config.language
+        if new_language == current_language:
+            return
+        current_language = new_language
+        _LOGGER.debug(
+            "HA language changed to %s – rebuilding dashboard", new_language
+        )
+        await async_update_dashboard(hass, controller)
+
+    entry.async_on_unload(
+        hass.bus.async_listen(
+            EVENT_CORE_CONFIG_UPDATE, _handle_core_config_update
+        )
+    )
 
     return True
 

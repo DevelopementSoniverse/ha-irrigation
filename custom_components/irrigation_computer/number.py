@@ -42,7 +42,6 @@ from .models import ZoneConfig
 class _NumberSpec:
     key: str
     field: str
-    name: str
     icon: str
     unit: str | None
     min_v: float
@@ -55,7 +54,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "watering_duration_sec",
         ZONE_WATERING_DURATION,
-        "Watering duration",
         "mdi:clock-end",
         UnitOfTime.SECONDS,
         10,
@@ -66,7 +64,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "threshold_planting",
         ZONE_THRESHOLD_PLANTING,
-        "Threshold Planting",
         "mdi:sun-wireless",
         UNIT_WH_PER_M2,
         0,
@@ -76,7 +73,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "threshold_fruit_set",
         ZONE_THRESHOLD_FRUIT_SET,
-        "Threshold Fruit Set",
         "mdi:sun-wireless",
         UNIT_WH_PER_M2,
         0,
@@ -86,7 +82,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "threshold_ripening",
         ZONE_THRESHOLD_RIPENING,
-        "Threshold Ripening",
         "mdi:sun-wireless",
         UNIT_WH_PER_M2,
         0,
@@ -96,7 +91,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "power_alert_delay_sec",
         ZONE_POWER_ALERT_DELAY,
-        "Power alert delay",
         "mdi:timer-alert-outline",
         UnitOfTime.SECONDS,
         0,
@@ -107,7 +101,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "power_min",
         ZONE_POWER_MIN,
-        "Undercurrent threshold",
         "mdi:flash-alert",
         UnitOfPower.WATT,
         0,
@@ -117,7 +110,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "power_max",
         ZONE_POWER_MAX,
-        "Overcurrent threshold",
         "mdi:flash-alert",
         UnitOfPower.WATT,
         0,
@@ -127,7 +119,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "max_runs_24h",
         ZONE_MAX_RUNS_24H,
-        "Max runs 24h alert threshold",
         "mdi:counter",
         None,
         0,
@@ -138,7 +129,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "fallback_minutes",
         ZONE_FALLBACK_MINUTES,
-        "Fallback interval",
         "mdi:timer-outline",
         UnitOfTime.MINUTES,
         5,
@@ -149,7 +139,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "soil_moisture_threshold",
         ZONE_SOIL_MOISTURE_THRESHOLD,
-        "Soil moisture threshold",
         "mdi:water-percent",
         UNIT_PERCENT,
         0,
@@ -159,7 +148,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "soil_moisture_dwell_minutes",
         ZONE_SOIL_MOISTURE_DWELL_MINUTES,
-        "Soil moisture dwell time",
         "mdi:timer-sand",
         UnitOfTime.MINUTES,
         0,
@@ -170,7 +158,6 @@ _NUMBERS: tuple[_NumberSpec, ...] = (
     _NumberSpec(
         "min_interval_minutes",
         ZONE_MIN_INTERVAL_MINUTES,
-        "Minimum interval between runs",
         "mdi:timer-lock-outline",
         UnitOfTime.MINUTES,
         0,
@@ -224,7 +211,7 @@ class ZoneNumber(IrrigationZoneEntity, NumberEntity):
     ) -> None:
         super().__init__(controller, zone, spec.key)
         self._spec = spec
-        self._attr_name = spec.name
+        self._attr_translation_key = spec.key
         self._attr_icon = spec.icon
         self._attr_native_unit_of_measurement = spec.unit
         self._attr_native_min_value = spec.min_v

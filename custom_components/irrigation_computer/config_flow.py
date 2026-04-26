@@ -18,10 +18,13 @@ from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er, selector
 
 from .const import (
+    CONF_DASHBOARD_LANGUAGE,
     CONF_PUSH_ALERT_DEVICE_IDS,
     CONF_PUSH_ALERTS_ENABLED,
     CONF_RADIATION_SOURCE_ENTITY,
     CONF_RADIATION_SOURCE_UNIT,
+    DASHBOARD_LANGUAGES,
+    DEFAULT_DASHBOARD_LANGUAGE,
     DEFAULT_FALLBACK_END,
     DEFAULT_FALLBACK_MINUTES,
     DEFAULT_FALLBACK_START,
@@ -82,6 +85,16 @@ def _radiation_unit_selector() -> selector.SelectSelector:
     )
 
 
+def _dashboard_language_selector() -> selector.SelectSelector:
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=list(DASHBOARD_LANGUAGES),
+            mode=selector.SelectSelectorMode.DROPDOWN,
+            translation_key="dashboard_language",
+        )
+    )
+
+
 def _phase_selector() -> selector.SelectSelector:
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
@@ -123,6 +136,12 @@ def _initial_global_schema(defaults: dict[str, Any] | None = None) -> vol.Schema
                     multiple=True,
                 )
             ),
+            vol.Required(
+                CONF_DASHBOARD_LANGUAGE,
+                default=defaults.get(
+                    CONF_DASHBOARD_LANGUAGE, DEFAULT_DASHBOARD_LANGUAGE
+                ),
+            ): _dashboard_language_selector(),
         }
     )
 
@@ -388,6 +407,9 @@ class IrrigationComputerConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_PUSH_ALERT_DEVICE_IDS: normalize_device_ids(
                         user_input.get(CONF_PUSH_ALERT_DEVICE_IDS)
                     ),
+                    CONF_DASHBOARD_LANGUAGE: user_input.get(
+                        CONF_DASHBOARD_LANGUAGE, DEFAULT_DASHBOARD_LANGUAGE
+                    ),
                 },
                 options={OPT_ZONES: []},
             )
@@ -487,6 +509,12 @@ class IrrigationComputerOptionsFlow(OptionsFlow):
                     self.config_entry.data.get(CONF_PUSH_ALERT_DEVICE_IDS, []),
                 )
             ),
+            CONF_DASHBOARD_LANGUAGE: self.config_entry.options.get(
+                CONF_DASHBOARD_LANGUAGE,
+                self.config_entry.data.get(
+                    CONF_DASHBOARD_LANGUAGE, DEFAULT_DASHBOARD_LANGUAGE
+                ),
+            ),
         }
         if user_input is not None:
             new_options = dict(self.config_entry.options)
@@ -504,6 +532,9 @@ class IrrigationComputerOptionsFlow(OptionsFlow):
             )
             new_options[CONF_PUSH_ALERT_DEVICE_IDS] = normalize_device_ids(
                 user_input.get(CONF_PUSH_ALERT_DEVICE_IDS)
+            )
+            new_options[CONF_DASHBOARD_LANGUAGE] = user_input.get(
+                CONF_DASHBOARD_LANGUAGE, DEFAULT_DASHBOARD_LANGUAGE
             )
             new_options.setdefault(OPT_ZONES, self._zones)
             return self.async_create_entry(title="", data=new_options)

@@ -38,7 +38,7 @@ async def test_radiation_trigger_starts_zone(hass: HomeAssistant) -> None:
             await t
 
     rt = controller.get_runtime(zone["zone_id"])
-    assert rt.last_reason == "Radiation"
+    assert rt.last_reason == "radiation"
 
     await controller.async_shutdown()
 

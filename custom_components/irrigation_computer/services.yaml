@@ -10,14 +10,16 @@ start_zone:
         text:
     reason:
       name: Reason
-      description: Reason for the run (Manual / Radiation / Fallback).
+      description: Reason for the run.
       required: false
       selector:
         select:
+          translation_key: reason
           options:
-            - Manual
-            - Radiation
-            - Fallback
+            - manual
+            - radiation
+            - fallback
+            - soil_moisture
 
 stop_zone:
   name: Stop zone
@@ -51,7 +53,9 @@ start_all:
       required: false
       selector:
         select:
+          translation_key: reason
           options:
-            - Manual
-            - Radiation
-            - Fallback
+            - manual
+            - radiation
+            - fallback
+            - soil_moisture

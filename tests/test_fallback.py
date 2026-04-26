@@ -67,7 +67,7 @@ async def test_fallback_trigger_starts_zone(hass: HomeAssistant) -> None:
             await t
 
     rt = controller.get_runtime(zone["zone_id"])
-    assert rt.last_reason == "Fallback"
+    assert rt.last_reason == "fallback"
 
     await controller.async_shutdown()
 

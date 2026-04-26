@@ -53,7 +53,7 @@ async def test_moisture_trigger_fires_after_dwell(hass: HomeAssistant) -> None:
 
     rt = controller.get_runtime(zone["zone_id"])
     assert rt.moisture_below_since is not None
-    assert rt.last_reason != "Soil moisture"
+    assert rt.last_reason != "soil_moisture"
 
     # Advance wall clock past the dwell threshold by rewinding the marker.
     rt.moisture_below_since = rt.moisture_below_since - timedelta(minutes=6)
@@ -63,7 +63,7 @@ async def test_moisture_trigger_fires_after_dwell(hass: HomeAssistant) -> None:
         await _run_pending_zone_tasks(controller)
 
     rt = controller.get_runtime(zone["zone_id"])
-    assert rt.last_reason == "Soil moisture"
+    assert rt.last_reason == "soil_moisture"
 
     await controller.async_shutdown()
 
@@ -146,11 +146,11 @@ async def test_min_interval_blocks_moisture_and_radiation(
         return None
 
     with patch.object(hass.services, "async_call", side_effect=noop):
-        assert await controller.async_start_zone(zone["zone_id"], "Manual") is True
+        assert await controller.async_start_zone(zone["zone_id"], "manual") is True
         await _run_pending_zone_tasks(controller)
 
     rt = controller.get_runtime(zone["zone_id"])
-    assert rt.last_reason == "Manual"
+    assert rt.last_reason == "manual"
 
     await controller.async_shutdown()
 

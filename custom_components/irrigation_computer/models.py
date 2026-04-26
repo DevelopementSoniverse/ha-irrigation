@@ -21,6 +21,8 @@ from .const import (
     DEFAULT_THRESHOLD_PLANTING,
     DEFAULT_THRESHOLD_RIPENING,
     DEFAULT_WATERING_DURATION,
+    LEGACY_PHASE_MAP,
+    LEGACY_REASON_MAP,
     PHASE_PLANTING,
     PHASE_FRUIT_SET,
     PHASE_RIPENING,
@@ -98,6 +100,7 @@ class ZoneConfig:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ZoneConfig":
         """Construct from a stored dict, applying defaults for missing keys."""
+        raw_phase = str(data.get(ZONE_PHASE, PHASE_PLANTING))
         return cls(
             zone_id=data[ZONE_ID],
             name=data.get(ZONE_NAME, "Zone"),
@@ -106,7 +109,7 @@ class ZoneConfig:
             watering_duration_sec=int(
                 data.get(ZONE_WATERING_DURATION, DEFAULT_WATERING_DURATION)
             ),
-            phase=str(data.get(ZONE_PHASE, PHASE_PLANTING)),
+            phase=LEGACY_PHASE_MAP.get(raw_phase, raw_phase),
             threshold_planting=float(
                 data.get(ZONE_THRESHOLD_PLANTING, DEFAULT_THRESHOLD_PLANTING)
             ),
@@ -205,9 +208,10 @@ class ZoneRuntimeState:
             except (TypeError, ValueError):
                 return None
 
+        raw_reason = str(data.get("last_reason", REASON_MANUAL))
         return cls(
             last_run_at=_parse_dt(data.get("last_run_at")),
-            last_reason=str(data.get("last_reason", REASON_MANUAL)),
+            last_reason=LEGACY_REASON_MAP.get(raw_reason, raw_reason),
             is_running=bool(data.get("is_running", False)),
             started_at=_parse_dt(data.get("started_at")),
             accumulated_radiation_at_last_run=float(

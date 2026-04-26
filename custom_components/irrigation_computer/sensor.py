@@ -50,7 +50,6 @@ async def async_setup_entry(
 
 class GlobalRadiationEnergySensor(IrrigationControllerEntity, SensorEntity):
     _attr_translation_key = "global_radiation_energy"
-    _attr_name = "Global radiation energy"
     _attr_native_unit_of_measurement = UNIT_WH_PER_M2
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_icon = "mdi:weather-sunny"
@@ -71,7 +70,7 @@ class _ZoneSensorBase(IrrigationZoneEntity, SensorEntity):
 
 
 class TimeSinceLastIrrigationSensor(_ZoneSensorBase):
-    _attr_name = "Time since last irrigation"
+    _attr_translation_key = "time_since_last_irrigation"
     _attr_native_unit_of_measurement = UnitOfTime.MINUTES
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:clock-outline"
@@ -89,7 +88,7 @@ class TimeSinceLastIrrigationSensor(_ZoneSensorBase):
 
 
 class RadiationSinceLastIrrigationSensor(_ZoneSensorBase):
-    _attr_name = "Radiation since last irrigation"
+    _attr_translation_key = "radiation_since_last_irrigation"
     _attr_native_unit_of_measurement = UNIT_WH_PER_M2
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:sun-wireless"
@@ -103,7 +102,7 @@ class RadiationSinceLastIrrigationSensor(_ZoneSensorBase):
 
 
 class CurrentRadiationThresholdSensor(_ZoneSensorBase):
-    _attr_name = "Current radiation threshold"
+    _attr_translation_key = "current_radiation_threshold"
     _attr_native_unit_of_measurement = UNIT_WH_PER_M2
     _attr_icon = "mdi:sun-wireless-outline"
 
@@ -117,7 +116,7 @@ class CurrentRadiationThresholdSensor(_ZoneSensorBase):
 
 
 class CurrentPowerSensor(_ZoneSensorBase):
-    _attr_name = "Current power"
+    _attr_translation_key = "current_power"
     _attr_device_class = SensorDeviceClass.POWER
     _attr_native_unit_of_measurement = UnitOfPower.WATT
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -161,7 +160,7 @@ class CurrentPowerSensor(_ZoneSensorBase):
 
 
 class Runs24hSensor(_ZoneSensorBase):
-    _attr_name = "Runs 24h"
+    _attr_translation_key = "runs_24h"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:counter"
 
@@ -178,7 +177,7 @@ class Runs24hSensor(_ZoneSensorBase):
 
 
 class LastRunSensor(_ZoneSensorBase):
-    _attr_name = "Last run"
+    _attr_translation_key = "last_run"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_icon = "mdi:history"
 
@@ -192,7 +191,7 @@ class LastRunSensor(_ZoneSensorBase):
 
 
 class LastReasonSensor(_ZoneSensorBase):
-    _attr_name = "Last reason"
+    _attr_translation_key = "last_reason"
     _attr_icon = "mdi:information-outline"
     _attr_options = list(REASONS)
     _attr_device_class = SensorDeviceClass.ENUM
@@ -207,7 +206,7 @@ class LastReasonSensor(_ZoneSensorBase):
 
 
 class AverageSoilMoistureSensor(_ZoneSensorBase):
-    _attr_name = "Average soil moisture"
+    _attr_translation_key = "average_soil_moisture"
     _attr_device_class = SensorDeviceClass.HUMIDITY
     _attr_native_unit_of_measurement = UNIT_PERCENT
     _attr_state_class = SensorStateClass.MEASUREMENT

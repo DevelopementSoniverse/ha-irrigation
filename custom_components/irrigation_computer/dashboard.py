@@ -8,6 +8,12 @@ the user to edit YAML.
 A marker key ``AUTO_MANAGED_KEY`` is stored alongside the dashboard config.
 If the user removes it (e.g. by manually editing the dashboard), the
 integration leaves the dashboard alone on subsequent updates.
+
+Lovelace storage dashboards are plain JSON and are NOT run through Home
+Assistant's entity translation system. We therefore localise visible labels
+(card titles, button captions, gauge names) at build time using
+``hass.config.language`` and rebuild the dashboard when the language changes
+(see ``__init__.py``).
 """
 
 from __future__ import annotations
@@ -18,6 +24,11 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
+from .const import (
+    CONF_DASHBOARD_LANGUAGE,
+    DASHBOARD_LANGUAGE_AUTO,
+    DEFAULT_DASHBOARD_LANGUAGE,
+)
 from .coordinator import IrrigationController
 from .models import ZoneConfig
 
@@ -26,6 +37,122 @@ _LOGGER = logging.getLogger(__name__)
 DASHBOARD_URL_PATH = "irrigation"
 LOVELACE_DATA_KEY = "lovelace"
 AUTO_MANAGED_KEY = "auto_managed_by_irrigation_computer"
+
+# Built-in dashboard labels per language. English is the fallback for any
+# unsupported locale; add new languages by extending this mapping.
+_DASHBOARD_STRINGS: dict[str, dict[str, str]] = {
+    "en": {
+        "dashboard_title": "Irrigation Computer",
+        "view_zones_title": "Zones",
+        "controller_card_title": "Controller",
+        "radiation_gauge_suffix": "Radiation since last irrigation",
+        "moisture_gauge_suffix": "Average soil moisture",
+        "gauge_irrigation_label": "Irrigation",
+        "action_start": "Start",
+        "action_stop": "Stop",
+        "action_settings": "Settings",
+        "metric_power": "Power",
+        "metric_time_since_last": "Since last irrigation",
+        "metric_runs_24h": "Runs 24 h",
+        "settings_view_suffix": "Settings",
+        "card_status": "Status",
+        "card_irrigation": "Irrigation",
+        "card_crop_radiation": "Crop & radiation",
+        "card_alerts_safety": "Alerts & safety",
+        "card_fallback": "Fallback",
+        "card_soil_moisture": "Soil moisture",
+        "empty_markdown": (
+            "## No zones configured\n\n"
+            "Please add a first zone via *Settings → Devices & Services → "
+            "Irrigation Computer → Configure → Add zone*."
+        ),
+    },
+    "de": {
+        "dashboard_title": "Bewässerungscomputer",
+        "view_zones_title": "Zonen",
+        "controller_card_title": "Controller",
+        "radiation_gauge_suffix": "Strahlung seit letzter Bewässerung",
+        "moisture_gauge_suffix": "Mittlere Bodenfeuchte",
+        "gauge_irrigation_label": "Bewässerung",
+        "action_start": "Start",
+        "action_stop": "Stopp",
+        "action_settings": "Einstellungen",
+        "metric_power": "Leistung",
+        "metric_time_since_last": "Seit letzter Bewässerung",
+        "metric_runs_24h": "Läufe 24 h",
+        "settings_view_suffix": "Einstellungen",
+        "card_status": "Status",
+        "card_irrigation": "Bewässerung",
+        "card_crop_radiation": "Kulturart & Strahlung",
+        "card_alerts_safety": "Alerts & Sicherheit",
+        "card_fallback": "Fallback",
+        "card_soil_moisture": "Bodenfeuchte",
+        "empty_markdown": (
+            "## Keine Zonen konfiguriert\n\n"
+            "Bitte über *Einstellungen → Geräte & Dienste → "
+            "Irrigation Computer → Konfigurieren → Zone hinzufügen* "
+            "eine erste Zone anlegen."
+        ),
+    },
+    "th": {
+        "dashboard_title": "คอมพิวเตอร์ชลประทาน",
+        "view_zones_title": "โซน",
+        "controller_card_title": "ตัวควบคุม",
+        "radiation_gauge_suffix": "รังสีตั้งแต่รดน้ำครั้งล่าสุด",
+        "moisture_gauge_suffix": "ความชื้นดินเฉลี่ย",
+        "gauge_irrigation_label": "รดน้ำ",
+        "action_start": "เริ่ม",
+        "action_stop": "หยุด",
+        "action_settings": "ตั้งค่า",
+        "metric_power": "กำลังไฟ",
+        "metric_time_since_last": "ตั้งแต่รดน้ำครั้งล่าสุด",
+        "metric_runs_24h": "จำนวนรอบ 24 ชม.",
+        "settings_view_suffix": "ตั้งค่า",
+        "card_status": "สถานะ",
+        "card_irrigation": "รดน้ำ",
+        "card_crop_radiation": "พืชและรังสี",
+        "card_alerts_safety": "การแจ้งเตือนและความปลอดภัย",
+        "card_fallback": "Fallback",
+        "card_soil_moisture": "ความชื้นดิน",
+        "empty_markdown": (
+            "## ยังไม่ได้กำหนดค่าโซน\n\n"
+            "กรุณาเพิ่มโซนแรกผ่าน *การตั้งค่า → อุปกรณ์และบริการ → "
+            "คอมพิวเตอร์ชลประทาน → กำหนดค่า → เพิ่มโซน*"
+        ),
+    },
+}
+
+
+def _active_language(
+    hass: HomeAssistant, controller: IrrigationController
+) -> str:
+    """Resolve the effective dashboard language.
+
+    Priority:
+    1. Explicit ``CONF_DASHBOARD_LANGUAGE`` option on the config entry
+       (values other than ``"auto"`` win).
+    2. ``hass.config.language`` (server language), region stripped.
+    3. ``"en"`` fallback.
+    """
+    entry = controller.entry
+    configured = entry.options.get(
+        CONF_DASHBOARD_LANGUAGE,
+        entry.data.get(CONF_DASHBOARD_LANGUAGE, DEFAULT_DASHBOARD_LANGUAGE),
+    )
+    if configured and configured != DASHBOARD_LANGUAGE_AUTO:
+        return str(configured)
+    server = (getattr(hass.config, "language", None) or "en").split("-")[0]
+    return server
+
+
+def _t(lang: str, key: str) -> str:
+    """Return a dashboard label for an already-resolved language code.
+
+    Falls back to English if the language is not explicitly supported or
+    the key is missing in the requested language.
+    """
+    bundle = _DASHBOARD_STRINGS.get(lang) or _DASHBOARD_STRINGS["en"]
+    return bundle.get(key) or _DASHBOARD_STRINGS["en"].get(key, key)
 
 
 def _zone_entity_map(
@@ -78,7 +205,7 @@ def _zone_entities(
 
 
 def _radiation_gauge_card(
-    entity_id: str, threshold: float, zone_name: str
+    hass: HomeAssistant, entity_id: str, threshold: float, zone_name: str
 ) -> dict[str, Any]:
     """Return a Lovelace gauge card mirroring the original YAML dashboard.
 
@@ -92,19 +219,23 @@ def _radiation_gauge_card(
     return {
         "type": "gauge",
         "entity": entity_id,
-        "name": f"{zone_name}: Strahlung seit letzter Bewässerung",
+        "name": f"{zone_name}: {_t(hass, 'radiation_gauge_suffix')}",
         "needle": True,
         "min": 0,
         "max": gauge_max,
         "segments": [
             {"from": 0, "color": "#9e9e9e"},
-            {"from": safe_threshold, "color": "#00bcd4", "label": "Irrigation"},
+            {
+                "from": safe_threshold,
+                "color": "#00bcd4",
+                "label": _t(hass, "gauge_irrigation_label"),
+            },
         ],
     }
 
 
 def _moisture_gauge_card(
-    entity_id: str, threshold: float, zone_name: str
+    hass: HomeAssistant, entity_id: str, threshold: float, zone_name: str
 ) -> dict[str, Any]:
     """Return a gauge card visualising the zone's average soil moisture.
 
@@ -117,12 +248,16 @@ def _moisture_gauge_card(
     return {
         "type": "gauge",
         "entity": entity_id,
-        "name": f"{zone_name}: Mittlere Bodenfeuchte",
+        "name": f"{zone_name}: {_t(hass, 'moisture_gauge_suffix')}",
         "needle": True,
         "min": 0,
         "max": 100,
         "segments": [
-            {"from": 0, "color": "#00bcd4", "label": "Irrigation"},
+            {
+                "from": 0,
+                "color": "#00bcd4",
+                "label": _t(hass, "gauge_irrigation_label"),
+            },
             {"from": safe_threshold, "color": "#9e9e9e"},
         ],
     }
@@ -209,7 +344,7 @@ def _zone_overview_stack(
     if zone.radiation_trigger_enabled:
         gauges.append(
             _radiation_gauge_card(
-                radiation_eid, zone.current_threshold(), zone.name
+                hass, radiation_eid, zone.current_threshold(), zone.name
             )
         )
     if (
@@ -219,7 +354,7 @@ def _zone_overview_stack(
     ):
         gauges.append(
             _moisture_gauge_card(
-                moisture_eid, zone.soil_moisture_threshold, zone.name
+                hass, moisture_eid, zone.soil_moisture_threshold, zone.name
             )
         )
 
@@ -236,7 +371,7 @@ def _zone_overview_stack(
             "square": False,
             "cards": [
                 _action_button_card(
-                    name="Start",
+                    name=_t(hass, "action_start"),
                     icon="mdi:play",
                     action="button.press",
                     target_entity_id=start_button,
@@ -244,7 +379,7 @@ def _zone_overview_stack(
                 if start_button
                 else {"type": "markdown", "content": ""},
                 _action_button_card(
-                    name="Stop",
+                    name=_t(hass, "action_stop"),
                     icon="mdi:stop",
                     action="button.press",
                     target_entity_id=stop_button,
@@ -252,7 +387,7 @@ def _zone_overview_stack(
                 if stop_button
                 else {"type": "markdown", "content": ""},
                 _action_button_card(
-                    name="Einstellungen",
+                    name=_t(hass, "action_settings"),
                     icon="mdi:cog-outline",
                     action="navigate",
                     navigation_path=f"/{DASHBOARD_URL_PATH}/{_zone_view_path(zone)}",
@@ -264,16 +399,22 @@ def _zone_overview_stack(
     metric_cards: list[dict[str, Any]] = []
     if current_power:
         metric_cards.append(
-            _metric_tile_card(current_power, "Leistung", "mdi:flash")
+            _metric_tile_card(current_power, _t(hass, "metric_power"), "mdi:flash")
         )
     if time_since:
         metric_cards.append(
             _metric_tile_card(
-                time_since, "Seit letzter Bewässerung", "mdi:clock-outline"
+                time_since,
+                _t(hass, "metric_time_since_last"),
+                "mdi:clock-outline",
             )
         )
     if runs_24h:
-        metric_cards.append(_metric_tile_card(runs_24h, "Runs 24 h", "mdi:counter"))
+        metric_cards.append(
+            _metric_tile_card(
+                runs_24h, _t(hass, "metric_runs_24h"), "mdi:counter"
+            )
+        )
 
     if metric_cards:
         cards.append(
@@ -305,7 +446,7 @@ def _zone_settings_view(
 
     cards = [
         _entities_card(
-            "Status",
+            _t(hass, "card_status"),
             [
                 entity_map.get("running"),
                 entity_map.get("relay_available"),
@@ -316,7 +457,7 @@ def _zone_settings_view(
             ],
         ),
         _entities_card(
-            "Bewässerung",
+            _t(hass, "card_irrigation"),
             [
                 entity_map.get("running_switch"),
                 entity_map.get("watering_duration_sec"),
@@ -325,7 +466,7 @@ def _zone_settings_view(
             ],
         ),
         _entities_card(
-            "Kulturart & Strahlung",
+            _t(hass, "card_crop_radiation"),
             [
                 entity_map.get("phase"),
                 entity_map.get("threshold_planting"),
@@ -338,7 +479,7 @@ def _zone_settings_view(
             ],
         ),
         _entities_card(
-            "Alerts & Sicherheit",
+            _t(hass, "card_alerts_safety"),
             [
                 entity_map.get("power_alert_delay_sec"),
                 entity_map.get("power_min"),
@@ -349,7 +490,7 @@ def _zone_settings_view(
             ],
         ),
         _entities_card(
-            "Fallback",
+            _t(hass, "card_fallback"),
             [
                 entity_map.get("fallback_enabled"),
                 entity_map.get("fallback_active"),
@@ -359,7 +500,7 @@ def _zone_settings_view(
             ],
         ),
         _entities_card(
-            "Bodenfeuchte",
+            _t(hass, "card_soil_moisture"),
             [
                 entity_map.get("soil_moisture_trigger_enabled"),
                 entity_map.get("average_soil_moisture"),
@@ -372,7 +513,7 @@ def _zone_settings_view(
     ]
 
     return {
-        "title": f"{zone.name} Einstellungen",
+        "title": f"{zone.name} {_t(hass, 'settings_view_suffix')}",
         "path": _zone_view_path(zone),
         "subview": True,
         "icon": "mdi:cog-outline",
@@ -411,7 +552,7 @@ def _build_dashboard_config(
         cards.append(
             {
                 "type": "entities",
-                "title": "Controller",
+                "title": _t(hass, "controller_card_title"),
                 "entities": controller_card_entities,
             }
         )
@@ -428,21 +569,16 @@ def _build_dashboard_config(
         cards.append(
             {
                 "type": "markdown",
-                "content": (
-                    "## Keine Zonen konfiguriert\n\n"
-                    "Bitte über *Einstellungen → Geräte & Dienste → "
-                    "Irrigation Computer → Konfigurieren → Zone hinzufügen* "
-                    "eine erste Zone anlegen."
-                ),
+                "content": _t(hass, "empty_markdown"),
             }
         )
 
     return {
         AUTO_MANAGED_KEY: True,
-        "title": "Irrigation Computer",
+        "title": _t(hass, "dashboard_title"),
         "views": [
             {
-                "title": "Zonen",
+                "title": _t(hass, "view_zones_title"),
                 "path": "zones",
                 "icon": "mdi:sprinkler-variant",
                 "cards": cards,

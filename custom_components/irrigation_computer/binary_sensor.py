@@ -42,7 +42,7 @@ class _ZoneBinaryBase(IrrigationZoneEntity, BinarySensorEntity):
 
 
 class ZoneRunningBinarySensor(_ZoneBinaryBase):
-    _attr_name = "Running"
+    _attr_translation_key = "running"
     _attr_device_class = BinarySensorDeviceClass.RUNNING
     _attr_icon = "mdi:water-pump"
 
@@ -56,7 +56,7 @@ class ZoneRunningBinarySensor(_ZoneBinaryBase):
 
 
 class FallbackActiveBinarySensor(_ZoneBinaryBase):
-    _attr_name = "Fallback active"
+    _attr_translation_key = "fallback_active"
     _attr_icon = "mdi:clock-alert-outline"
 
     def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:
@@ -71,7 +71,7 @@ class FallbackActiveBinarySensor(_ZoneBinaryBase):
 
 
 class RelayAvailableBinarySensor(_ZoneBinaryBase):
-    _attr_name = "Relay available"
+    _attr_translation_key = "relay_available"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_icon = "mdi:lan-connect"
 
@@ -91,7 +91,7 @@ class RelayAvailableBinarySensor(_ZoneBinaryBase):
 
 
 class RelayErrorBinarySensor(_ZoneBinaryBase):
-    _attr_name = "Relay error"
+    _attr_translation_key = "relay_error"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_icon = "mdi:alert-circle-outline"
 

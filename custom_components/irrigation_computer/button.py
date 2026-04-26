@@ -36,7 +36,7 @@ class _ZoneButton(IrrigationZoneEntity, ButtonEntity):
 
 
 class ZoneStartButton(_ZoneButton):
-    _attr_name = "Start irrigation"
+    _attr_translation_key = "start_irrigation"
     _attr_icon = "mdi:play"
 
     def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:
@@ -47,7 +47,7 @@ class ZoneStartButton(_ZoneButton):
 
 
 class ZoneStopButton(_ZoneButton):
-    _attr_name = "Stop irrigation"
+    _attr_translation_key = "stop_irrigation"
     _attr_icon = "mdi:stop"
 
     def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:
@@ -58,7 +58,7 @@ class ZoneStopButton(_ZoneButton):
 
 
 class ZoneResetRadiationButton(_ZoneButton):
-    _attr_name = "Reset radiation counter"
+    _attr_translation_key = "reset_radiation_counter"
     _attr_icon = "mdi:restart"
 
     def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:

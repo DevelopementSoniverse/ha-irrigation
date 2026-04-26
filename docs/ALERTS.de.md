@@ -29,6 +29,14 @@ Zonen-Alarme setzen zusätzlich den zugehörigen Sensor
 `sensor.<zone>_relay_error` (maschinenlesbarer Fehlercode) und erscheinen auf
 der Dashboard-Karte der Zone unter *Alerts & Sicherheit*.
 
+> **Hinweis zu Entity-IDs:** Entity-Namen laufen über das
+> Home-Assistant-Übersetzungssystem. Bei **Neuinstallationen** leitet Home
+> Assistant die `entity_id` aus dem übersetzten Namen in der aktiven Sprache
+> ab – auf einer deutschen HA-Installation heißt die Entity also z. B.
+> `sensor.<zone>_relaisfehler` statt `sensor.<zone>_relay_error`. Bestehende
+> `entity_id`s bleiben unverändert; bei Bedarf lassen sie sich in
+> *Einstellungen → Geräte & Dienste* umbenennen.
+
 ## Zonen-bezogene Alarme
 
 Jede Zeile unten ist ein Alarm, der für **eine einzelne Zone** ausgelöst wird.

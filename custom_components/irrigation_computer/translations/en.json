@@ -119,13 +119,96 @@
       "global_updated": "Global settings updated"
     }
   },
+  "entity": {
+    "sensor": {
+      "global_radiation_energy": {"name": "Global radiation energy"},
+      "time_since_last_irrigation": {"name": "Time since last irrigation"},
+      "radiation_since_last_irrigation": {"name": "Radiation since last irrigation"},
+      "current_radiation_threshold": {"name": "Current radiation threshold"},
+      "current_power": {"name": "Current power"},
+      "runs_24h": {"name": "Runs 24h"},
+      "last_run": {"name": "Last run"},
+      "last_reason": {
+        "name": "Last reason",
+        "state": {
+          "manual": "Manual",
+          "radiation": "Radiation",
+          "fallback": "Fallback",
+          "soil_moisture": "Soil moisture"
+        }
+      },
+      "average_soil_moisture": {"name": "Average soil moisture"}
+    },
+    "binary_sensor": {
+      "running": {"name": "Running"},
+      "fallback_active": {"name": "Fallback active"},
+      "relay_available": {"name": "Relay available"},
+      "relay_error": {"name": "Relay error"}
+    },
+    "switch": {
+      "running": {"name": "Running"},
+      "fallback_enabled": {"name": "Fallback enabled"},
+      "radiation_trigger_enabled": {"name": "Radiation trigger enabled"},
+      "soil_moisture_trigger_enabled": {"name": "Soil moisture trigger enabled"}
+    },
+    "button": {
+      "start_irrigation": {"name": "Start irrigation"},
+      "stop_irrigation": {"name": "Stop irrigation"},
+      "reset_radiation_counter": {"name": "Reset radiation counter"}
+    },
+    "number": {
+      "watering_duration_sec": {"name": "Watering duration"},
+      "threshold_planting": {"name": "Threshold Planting"},
+      "threshold_fruit_set": {"name": "Threshold Fruit Set"},
+      "threshold_ripening": {"name": "Threshold Ripening"},
+      "power_alert_delay_sec": {"name": "Power alert delay"},
+      "power_min": {"name": "Undercurrent threshold"},
+      "power_max": {"name": "Overcurrent threshold"},
+      "max_runs_24h": {"name": "Max runs 24h alert threshold"},
+      "fallback_minutes": {"name": "Fallback interval"},
+      "soil_moisture_threshold": {"name": "Soil moisture threshold"},
+      "soil_moisture_dwell_minutes": {"name": "Soil moisture dwell time"},
+      "min_interval_minutes": {"name": "Minimum interval between runs"}
+    },
+    "time": {
+      "fallback_start": {"name": "Fallback start"},
+      "fallback_end": {"name": "Fallback end"}
+    },
+    "select": {
+      "phase": {
+        "name": "Growth phase",
+        "state": {
+          "planting": "Planting",
+          "fruit_set": "Fruit Set",
+          "ripening": "Ripening"
+        }
+      }
+    }
+  },
+  "selector": {
+    "phase": {
+      "options": {
+        "planting": "Planting",
+        "fruit_set": "Fruit Set",
+        "ripening": "Ripening"
+      }
+    },
+    "reason": {
+      "options": {
+        "manual": "Manual",
+        "radiation": "Radiation",
+        "fallback": "Fallback",
+        "soil_moisture": "Soil moisture"
+      }
+    }
+  },
   "services": {
     "start_zone": {
       "name": "Start zone",
       "description": "Start a single irrigation zone.",
       "fields": {
         "zone_id": {"name": "Zone ID", "description": "ID of the zone to start"},
-        "reason": {"name": "Reason", "description": "Reason (Manual / Radiation / Fallback / Soil moisture)"}
+        "reason": {"name": "Reason", "description": "Reason for the run"}
       }
     },
     "stop_zone": {

@@ -1,0 +1,236 @@
+{
+  "title": "คอมพิวเตอร์ชลประทาน",
+  "config": {
+    "step": {
+      "user": {
+        "title": "คอมพิวเตอร์ชลประทาน",
+        "description": "กำหนดค่าแหล่งรังสีส่วนกลาง สามารถเพิ่มโซนได้ภายหลังผ่านตัวเลือกของอินทิเกรชัน",
+        "data": {
+          "radiation_source_entity": "เซ็นเซอร์แหล่งรังสี (เช่น รังสีดวงอาทิตย์)",
+          "radiation_source_unit": "หน่วยของแหล่งรังสี",
+          "push_alerts_enabled": "ส่งการแจ้งเตือนของคอมโพเนนต์แบบพุช",
+          "push_alert_device_ids": "สมาร์ตโฟนสำหรับการแจ้งเตือนแบบพุช"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "รองรับได้เพียงหนึ่งอินสแตนซ์เท่านั้น"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "คอมพิวเตอร์ชลประทาน",
+        "menu_options": {
+          "global_settings": "การตั้งค่าส่วนกลาง",
+          "add_zone": "เพิ่มโซน",
+          "edit_zone_select": "แก้ไขโซน",
+          "delete_zone_select": "ลบโซน"
+        }
+      },
+      "global_settings": {
+        "title": "การตั้งค่าส่วนกลาง",
+        "data": {
+          "radiation_source_entity": "เซ็นเซอร์แหล่งรังสี",
+          "radiation_source_unit": "หน่วยของแหล่งรังสี",
+          "push_alerts_enabled": "ส่งการแจ้งเตือนของคอมโพเนนต์แบบพุช",
+          "push_alert_device_ids": "สมาร์ตโฟนสำหรับการแจ้งเตือนแบบพุช"
+        }
+      },
+      "add_zone": {
+        "title": "เพิ่มโซน",
+        "data": {
+          "name": "ชื่อโซน",
+          "relay_entity_id": "เอนทิตีสวิตช์รีเลย์",
+          "power_entity_id": "เซ็นเซอร์กำลังไฟ (ไม่บังคับ, หาให้อัตโนมัติหากว่าง)",
+          "watering_duration_sec": "ระยะเวลารดน้ำ (วินาที)",
+          "phase": "ระยะการเจริญเติบโต",
+          "threshold_planting": "ค่าเกณฑ์รังสี - ระยะปลูก (Wh/m²)",
+          "threshold_fruit_set": "ค่าเกณฑ์รังสี - ระยะติดผล (Wh/m²)",
+          "threshold_ripening": "ค่าเกณฑ์รังสี - ระยะสุก (Wh/m²)",
+          "power_alert_delay_sec": "หน่วงเวลาการแจ้งเตือนกำลังไฟ (วินาที)",
+          "power_min": "ค่าเกณฑ์กระแสต่ำ (W)",
+          "power_max": "ค่าเกณฑ์กระแสสูง (W)",
+          "max_runs_24h": "ค่าเกณฑ์แจ้งเตือนจำนวนรอบใน 24 ชม. (0 = ปิดใช้งาน)",
+          "fallback_enabled": "เปิดใช้ fallback",
+          "fallback_minutes": "ช่วงเวลา fallback (นาที)",
+          "fallback_start": "fallback เริ่มทำงานตั้งแต่ (HH:MM)",
+          "fallback_end": "fallback ทำงานถึง (HH:MM)",
+          "radiation_trigger_enabled": "เปิดใช้ทริกเกอร์รังสี",
+          "soil_moisture_entity_ids": "เซ็นเซอร์ความชื้นดิน (ไม่บังคับ, หนึ่งตัวหรือมากกว่า)",
+          "soil_moisture_trigger_enabled": "เปิดใช้ทริกเกอร์ความชื้นดิน",
+          "soil_moisture_threshold": "ค่าเกณฑ์ความชื้นดิน (%)",
+          "soil_moisture_dwell_minutes": "เวลาคงอยู่ของความชื้นดิน (นาที)",
+          "min_interval_minutes": "ช่วงเวลาขั้นต่ำระหว่างการรดน้ำ (นาที, 0 = ปิดใช้งาน)"
+        }
+      },
+      "edit_zone_select": {
+        "title": "เลือกโซนที่จะแก้ไข",
+        "data": {
+          "zone_id": "โซน"
+        }
+      },
+      "edit_zone": {
+        "title": "แก้ไขโซน",
+        "data": {
+          "name": "ชื่อโซน",
+          "relay_entity_id": "เอนทิตีสวิตช์รีเลย์",
+          "power_entity_id": "เซ็นเซอร์กำลังไฟ (ไม่บังคับ)",
+          "watering_duration_sec": "ระยะเวลารดน้ำ (วินาที)",
+          "phase": "ระยะการเจริญเติบโต",
+          "threshold_planting": "ค่าเกณฑ์รังสี - ระยะปลูก (Wh/m²)",
+          "threshold_fruit_set": "ค่าเกณฑ์รังสี - ระยะติดผล (Wh/m²)",
+          "threshold_ripening": "ค่าเกณฑ์รังสี - ระยะสุก (Wh/m²)",
+          "power_alert_delay_sec": "หน่วงเวลาการแจ้งเตือนกำลังไฟ (วินาที)",
+          "power_min": "ค่าเกณฑ์กระแสต่ำ (W)",
+          "power_max": "ค่าเกณฑ์กระแสสูง (W)",
+          "max_runs_24h": "ค่าเกณฑ์แจ้งเตือนจำนวนรอบใน 24 ชม. (0 = ปิดใช้งาน)",
+          "fallback_enabled": "เปิดใช้ fallback",
+          "fallback_minutes": "ช่วงเวลา fallback (นาที)",
+          "fallback_start": "fallback เริ่มทำงานตั้งแต่ (HH:MM)",
+          "fallback_end": "fallback ทำงานถึง (HH:MM)",
+          "radiation_trigger_enabled": "เปิดใช้ทริกเกอร์รังสี",
+          "soil_moisture_entity_ids": "เซ็นเซอร์ความชื้นดิน (ไม่บังคับ, หนึ่งตัวหรือมากกว่า)",
+          "soil_moisture_trigger_enabled": "เปิดใช้ทริกเกอร์ความชื้นดิน",
+          "soil_moisture_threshold": "ค่าเกณฑ์ความชื้นดิน (%)",
+          "soil_moisture_dwell_minutes": "เวลาคงอยู่ของความชื้นดิน (นาที)",
+          "min_interval_minutes": "ช่วงเวลาขั้นต่ำระหว่างการรดน้ำ (นาที, 0 = ปิดใช้งาน)"
+        }
+      },
+      "delete_zone_select": {
+        "title": "ลบโซน",
+        "data": {
+          "zone_id": "โซนที่จะลบ",
+          "confirm": "ยืนยันการลบ"
+        }
+      }
+    },
+    "error": {
+      "name_required": "จำเป็นต้องระบุชื่อ",
+      "relay_required": "จำเป็นต้องระบุเอนทิตีรีเลย์",
+      "invalid_time": "เวลาต้องอยู่ในรูปแบบ HH:MM หรือ HH:MM:SS",
+      "fallback_minutes_range": "ช่วงเวลา fallback ต้องอยู่ระหว่าง 5 ถึง 240 นาที",
+      "not_confirmed": "กรุณายืนยันการลบ"
+    },
+    "abort": {
+      "zone_added": "เพิ่มโซนแล้ว",
+      "zone_updated": "อัปเดตโซนแล้ว",
+      "zone_deleted": "ลบโซนแล้ว",
+      "global_updated": "อัปเดตการตั้งค่าส่วนกลางแล้ว"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "global_radiation_energy": {"name": "พลังงานรังสีรวม"},
+      "time_since_last_irrigation": {"name": "เวลาตั้งแต่รดน้ำครั้งล่าสุด"},
+      "radiation_since_last_irrigation": {"name": "รังสีตั้งแต่รดน้ำครั้งล่าสุด"},
+      "current_radiation_threshold": {"name": "ค่าเกณฑ์รังสีปัจจุบัน"},
+      "current_power": {"name": "กำลังไฟปัจจุบัน"},
+      "runs_24h": {"name": "จำนวนรอบ 24 ชม."},
+      "last_run": {"name": "รอบล่าสุด"},
+      "last_reason": {
+        "name": "เหตุผลล่าสุด",
+        "state": {
+          "manual": "ด้วยตนเอง",
+          "radiation": "รังสี",
+          "fallback": "Fallback",
+          "soil_moisture": "ความชื้นดิน"
+        }
+      },
+      "average_soil_moisture": {"name": "ความชื้นดินเฉลี่ย"}
+    },
+    "binary_sensor": {
+      "running": {"name": "กำลังทำงาน"},
+      "fallback_active": {"name": "fallback ทำงานอยู่"},
+      "relay_available": {"name": "รีเลย์พร้อมใช้งาน"},
+      "relay_error": {"name": "ข้อผิดพลาดรีเลย์"}
+    },
+    "switch": {
+      "running": {"name": "กำลังรดน้ำ"},
+      "fallback_enabled": {"name": "เปิดใช้ fallback"},
+      "radiation_trigger_enabled": {"name": "เปิดใช้ทริกเกอร์รังสี"},
+      "soil_moisture_trigger_enabled": {"name": "เปิดใช้ทริกเกอร์ความชื้นดิน"}
+    },
+    "button": {
+      "start_irrigation": {"name": "เริ่มรดน้ำ"},
+      "stop_irrigation": {"name": "หยุดรดน้ำ"},
+      "reset_radiation_counter": {"name": "รีเซ็ตตัวนับรังสี"}
+    },
+    "number": {
+      "watering_duration_sec": {"name": "ระยะเวลารดน้ำ"},
+      "threshold_planting": {"name": "ค่าเกณฑ์ระยะปลูก"},
+      "threshold_fruit_set": {"name": "ค่าเกณฑ์ระยะติดผล"},
+      "threshold_ripening": {"name": "ค่าเกณฑ์ระยะสุก"},
+      "power_alert_delay_sec": {"name": "หน่วงเวลาการแจ้งเตือนกำลังไฟ"},
+      "power_min": {"name": "ค่าเกณฑ์กระแสต่ำ"},
+      "power_max": {"name": "ค่าเกณฑ์กระแสสูง"},
+      "max_runs_24h": {"name": "ค่าเกณฑ์แจ้งเตือนจำนวนรอบใน 24 ชม."},
+      "fallback_minutes": {"name": "ช่วงเวลา fallback"},
+      "soil_moisture_threshold": {"name": "ค่าเกณฑ์ความชื้นดิน"},
+      "soil_moisture_dwell_minutes": {"name": "เวลาคงอยู่ของความชื้นดิน"},
+      "min_interval_minutes": {"name": "ช่วงเวลาขั้นต่ำระหว่างการรดน้ำ"}
+    },
+    "time": {
+      "fallback_start": {"name": "เวลาเริ่ม fallback"},
+      "fallback_end": {"name": "เวลาสิ้นสุด fallback"}
+    },
+    "select": {
+      "phase": {
+        "name": "ระยะการเจริญเติบโต",
+        "state": {
+          "planting": "ระยะปลูก",
+          "fruit_set": "ระยะติดผล",
+          "ripening": "ระยะสุก"
+        }
+      }
+    }
+  },
+  "selector": {
+    "phase": {
+      "options": {
+        "planting": "ระยะปลูก",
+        "fruit_set": "ระยะติดผล",
+        "ripening": "ระยะสุก"
+      }
+    },
+    "reason": {
+      "options": {
+        "manual": "ด้วยตนเอง",
+        "radiation": "รังสี",
+        "fallback": "Fallback",
+        "soil_moisture": "ความชื้นดิน"
+      }
+    }
+  },
+  "services": {
+    "start_zone": {
+      "name": "เริ่มโซน",
+      "description": "เริ่มรดน้ำโซนเดียว",
+      "fields": {
+        "zone_id": {"name": "ID โซน", "description": "ID ของโซนที่จะเริ่ม"},
+        "reason": {"name": "เหตุผล", "description": "เหตุผลของการรัน"}
+      }
+    },
+    "stop_zone": {
+      "name": "หยุดโซน",
+      "description": "หยุดโซนที่กำลังทำงาน",
+      "fields": {
+        "zone_id": {"name": "ID โซน", "description": "ID ของโซนที่จะหยุด"}
+      }
+    },
+    "reset_radiation": {
+      "name": "รีเซ็ตตัวนับรังสี",
+      "description": "รีเซ็ตตัวนับรังสีตั้งแต่รดน้ำครั้งล่าสุดสำหรับโซน",
+      "fields": {
+        "zone_id": {"name": "ID โซน", "description": "โซนที่ต้องการรีเซ็ตตัวนับ"}
+      }
+    },
+    "start_all": {
+      "name": "เริ่มทุกโซน",
+      "description": "รันทุกโซนที่กำหนดค่าไว้ตามลำดับ",
+      "fields": {
+        "reason": {"name": "เหตุผล", "description": "เหตุผลของการรัน"}
+      }
+    }
+  }
+}
