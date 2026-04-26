@@ -104,6 +104,10 @@ global options, you can additionally enable push alerts and select one or more
 Home Assistant mobile app devices that should receive the same alert on their
 smartphones.
 
+A complete catalogue of every alert (trigger, effect on the running irrigation
+and whether a push is sent) is documented in
+[`docs/ALERTS.md`](docs/ALERTS.md) ([deutsche Fassung](docs/ALERTS.de.md)).
+
 ## Services
 
 | Service                                 | Fields                       |
