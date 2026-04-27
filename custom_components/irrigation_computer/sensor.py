@@ -17,7 +17,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, REASONS, UNIT_PERCENT, UNIT_WH_PER_M2
-from .coordinator import IrrigationController
+from .coordinator import IrrigationController, next_fallback_trigger_at
 from .entity import IrrigationControllerEntity, IrrigationZoneEntity
 from .models import ZoneConfig
 
@@ -40,6 +40,7 @@ async def async_setup_entry(
                 LastRunSensor(controller, zone),
                 LastReasonSensor(controller, zone),
                 AverageSoilMoistureSensor(controller, zone),
+                NextFallbackAtSensor(controller, zone),
             ]
         )
     async_add_entities(entities)
@@ -203,6 +204,37 @@ class LastReasonSensor(_ZoneSensorBase):
     def native_value(self) -> str | None:
         rt = self._controller.get_runtime(self._zone_id)
         return rt.last_reason if rt else None
+
+
+class NextFallbackAtSensor(_ZoneSensorBase):
+    """Predicted earliest time the fallback trigger could fire next.
+
+    Returns ``None`` (→ entity state ``unknown``) when the fallback is
+    disabled for the zone or no baseline run time is known yet, so the
+    dashboard can hide the tile conditionally via ``fallback_enabled``.
+    """
+
+    _attr_translation_key = "next_fallback_at"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:clock-alert-outline"
+
+    def __init__(self, controller: IrrigationController, zone: ZoneConfig) -> None:
+        super().__init__(controller, zone, "next_fallback_at")
+
+    @property
+    def native_value(self) -> datetime | None:
+        zone = self.zone
+        rt = self._controller.get_runtime(self._zone_id)
+        if zone is None or rt is None:
+            return None
+        return next_fallback_trigger_at(zone, rt.last_run_at)
+
+    @property
+    def available(self) -> bool:
+        if not super().available:
+            return False
+        zone = self.zone
+        return bool(zone and zone.fallback_enabled)
 
 
 class AverageSoilMoistureSensor(_ZoneSensorBase):

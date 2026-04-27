@@ -137,7 +137,8 @@
           "soil_moisture": "Bodenfeuchte"
         }
       },
-      "average_soil_moisture": {"name": "Durchschnittliche Bodenfeuchte"}
+      "average_soil_moisture": {"name": "Durchschnittliche Bodenfeuchte"},
+      "next_fallback_at": {"name": "Nächster Fallback"}
     },
     "binary_sensor": {
       "running": {"name": "Läuft"},

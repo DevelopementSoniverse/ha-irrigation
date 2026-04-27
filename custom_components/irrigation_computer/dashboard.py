@@ -54,6 +54,9 @@ _DASHBOARD_STRINGS: dict[str, dict[str, str]] = {
         "metric_power": "Power",
         "metric_time_since_last": "Since last irrigation",
         "metric_runs_24h": "Runs 24 h",
+        "metric_last_reason": "Last reason",
+        "quick_time_since_last": "Since last irrigation",
+        "quick_next_fallback_at": "Next fallback at",
         "settings_view_suffix": "Settings",
         "card_status": "Status",
         "card_irrigation": "Irrigation",
@@ -80,6 +83,9 @@ _DASHBOARD_STRINGS: dict[str, dict[str, str]] = {
         "metric_power": "Leistung",
         "metric_time_since_last": "Seit letzter Bewässerung",
         "metric_runs_24h": "Läufe 24 h",
+        "metric_last_reason": "Letzter Grund",
+        "quick_time_since_last": "Seit letzter Bewässerung",
+        "quick_next_fallback_at": "Nächster Fallback",
         "settings_view_suffix": "Einstellungen",
         "card_status": "Status",
         "card_irrigation": "Bewässerung",
@@ -107,6 +113,9 @@ _DASHBOARD_STRINGS: dict[str, dict[str, str]] = {
         "metric_power": "กำลังไฟ",
         "metric_time_since_last": "ตั้งแต่รดน้ำครั้งล่าสุด",
         "metric_runs_24h": "จำนวนรอบ 24 ชม.",
+        "metric_last_reason": "เหตุผลล่าสุด",
+        "quick_time_since_last": "ตั้งแต่รดน้ำครั้งล่าสุด",
+        "quick_next_fallback_at": "fallback ครั้งถัดไปที่",
         "settings_view_suffix": "ตั้งค่า",
         "card_status": "สถานะ",
         "card_irrigation": "รดน้ำ",
@@ -205,7 +214,7 @@ def _zone_entities(
 
 
 def _radiation_gauge_card(
-    hass: HomeAssistant, entity_id: str, threshold: float, zone_name: str
+    lang: str, entity_id: str, threshold: float, zone_name: str
 ) -> dict[str, Any]:
     """Return a Lovelace gauge card mirroring the original YAML dashboard.
 
@@ -219,7 +228,7 @@ def _radiation_gauge_card(
     return {
         "type": "gauge",
         "entity": entity_id,
-        "name": f"{zone_name}: {_t(hass, 'radiation_gauge_suffix')}",
+        "name": f"{zone_name}: {_t(lang, 'radiation_gauge_suffix')}",
         "needle": True,
         "min": 0,
         "max": gauge_max,
@@ -228,14 +237,14 @@ def _radiation_gauge_card(
             {
                 "from": safe_threshold,
                 "color": "#00bcd4",
-                "label": _t(hass, "gauge_irrigation_label"),
+                "label": _t(lang, "gauge_irrigation_label"),
             },
         ],
     }
 
 
 def _moisture_gauge_card(
-    hass: HomeAssistant, entity_id: str, threshold: float, zone_name: str
+    lang: str, entity_id: str, threshold: float, zone_name: str
 ) -> dict[str, Any]:
     """Return a gauge card visualising the zone's average soil moisture.
 
@@ -248,7 +257,7 @@ def _moisture_gauge_card(
     return {
         "type": "gauge",
         "entity": entity_id,
-        "name": f"{zone_name}: {_t(hass, 'moisture_gauge_suffix')}",
+        "name": f"{zone_name}: {_t(lang, 'moisture_gauge_suffix')}",
         "needle": True,
         "min": 0,
         "max": 100,
@@ -256,7 +265,7 @@ def _moisture_gauge_card(
             {
                 "from": 0,
                 "color": "#00bcd4",
-                "label": _t(hass, "gauge_irrigation_label"),
+                "label": _t(lang, "gauge_irrigation_label"),
             },
             {"from": safe_threshold, "color": "#9e9e9e"},
         ],
@@ -325,7 +334,10 @@ def _entities_card(title: str, entity_ids: list[str | None]) -> dict[str, Any] |
 
 
 def _zone_overview_stack(
-    hass: HomeAssistant, controller: IrrigationController, zone: ZoneConfig
+    hass: HomeAssistant,
+    controller: IrrigationController,
+    zone: ZoneConfig,
+    lang: str,
 ) -> dict[str, Any] | None:
     """Build the main dashboard stack for one zone."""
     entity_map = _zone_entity_map(hass, controller, zone)
@@ -338,13 +350,14 @@ def _zone_overview_stack(
     current_power = entity_map.get("current_power")
     time_since = entity_map.get("time_since_last_irrigation")
     runs_24h = entity_map.get("runs_24h")
+    last_reason = entity_map.get("last_reason")
     moisture_eid = entity_map.get("average_soil_moisture")
 
     gauges: list[dict[str, Any]] = []
     if zone.radiation_trigger_enabled:
         gauges.append(
             _radiation_gauge_card(
-                hass, radiation_eid, zone.current_threshold(), zone.name
+                lang, radiation_eid, zone.current_threshold(), zone.name
             )
         )
     if (
@@ -354,7 +367,7 @@ def _zone_overview_stack(
     ):
         gauges.append(
             _moisture_gauge_card(
-                hass, moisture_eid, zone.soil_moisture_threshold, zone.name
+                lang, moisture_eid, zone.soil_moisture_threshold, zone.name
             )
         )
 
@@ -364,6 +377,40 @@ def _zone_overview_stack(
     elif len(gauges) >= 2:
         cards.append({"type": "horizontal-stack", "cards": gauges})
 
+    fallback_enabled_eid = entity_map.get("fallback_enabled")
+    next_fallback_eid = entity_map.get("next_fallback_at")
+    if (
+        zone.fallback_enabled
+        and time_since
+        and next_fallback_eid
+        and fallback_enabled_eid
+    ):
+        cards.append(
+            {
+                "type": "conditional",
+                "conditions": [
+                    {"entity": fallback_enabled_eid, "state": "on"},
+                ],
+                "card": {
+                    "type": "grid",
+                    "columns": 2,
+                    "square": False,
+                    "cards": [
+                        _metric_tile_card(
+                            time_since,
+                            _t(lang, "quick_time_since_last"),
+                            "mdi:clock-outline",
+                        ),
+                        _metric_tile_card(
+                            next_fallback_eid,
+                            _t(lang, "quick_next_fallback_at"),
+                            "mdi:clock-alert-outline",
+                        ),
+                    ],
+                },
+            }
+        )
+
     cards.append(
         {
             "type": "grid",
@@ -371,7 +418,7 @@ def _zone_overview_stack(
             "square": False,
             "cards": [
                 _action_button_card(
-                    name=_t(hass, "action_start"),
+                    name=_t(lang, "action_start"),
                     icon="mdi:play",
                     action="button.press",
                     target_entity_id=start_button,
@@ -379,7 +426,7 @@ def _zone_overview_stack(
                 if start_button
                 else {"type": "markdown", "content": ""},
                 _action_button_card(
-                    name=_t(hass, "action_stop"),
+                    name=_t(lang, "action_stop"),
                     icon="mdi:stop",
                     action="button.press",
                     target_entity_id=stop_button,
@@ -387,7 +434,7 @@ def _zone_overview_stack(
                 if stop_button
                 else {"type": "markdown", "content": ""},
                 _action_button_card(
-                    name=_t(hass, "action_settings"),
+                    name=_t(lang, "action_settings"),
                     icon="mdi:cog-outline",
                     action="navigate",
                     navigation_path=f"/{DASHBOARD_URL_PATH}/{_zone_view_path(zone)}",
@@ -399,20 +446,20 @@ def _zone_overview_stack(
     metric_cards: list[dict[str, Any]] = []
     if current_power:
         metric_cards.append(
-            _metric_tile_card(current_power, _t(hass, "metric_power"), "mdi:flash")
+            _metric_tile_card(current_power, _t(lang, "metric_power"), "mdi:flash")
         )
-    if time_since:
+    if last_reason:
         metric_cards.append(
             _metric_tile_card(
-                time_since,
-                _t(hass, "metric_time_since_last"),
-                "mdi:clock-outline",
+                last_reason,
+                _t(lang, "metric_last_reason"),
+                "mdi:information-outline",
             )
         )
     if runs_24h:
         metric_cards.append(
             _metric_tile_card(
-                runs_24h, _t(hass, "metric_runs_24h"), "mdi:counter"
+                runs_24h, _t(lang, "metric_runs_24h"), "mdi:counter"
             )
         )
 
@@ -497,6 +544,7 @@ def _zone_settings_view(
                 entity_map.get("fallback_minutes"),
                 entity_map.get("fallback_start"),
                 entity_map.get("fallback_end"),
+                entity_map.get("next_fallback_at"),
             ],
         ),
         _entities_card(
@@ -539,6 +587,7 @@ def _build_dashboard_config(
     hass: HomeAssistant, controller: IrrigationController
 ) -> dict[str, Any]:
     """Build a fresh dashboard config from current state."""
+    lang = _active_language(hass, controller)
     cards: list[dict[str, Any]] = []
     views: list[dict[str, Any]] = []
 
@@ -552,14 +601,14 @@ def _build_dashboard_config(
         cards.append(
             {
                 "type": "entities",
-                "title": _t(hass, "controller_card_title"),
+                "title": _t(lang, "controller_card_title"),
                 "entities": controller_card_entities,
             }
         )
 
     # One card per zone.
     for zone in controller.zones:
-        zone_card = _zone_overview_stack(hass, controller, zone)
+        zone_card = _zone_overview_stack(hass, controller, zone, lang)
         if zone_card is None:
             continue
         cards.append(zone_card)
@@ -569,16 +618,16 @@ def _build_dashboard_config(
         cards.append(
             {
                 "type": "markdown",
-                "content": _t(hass, "empty_markdown"),
+                "content": _t(lang, "empty_markdown"),
             }
         )
 
     return {
         AUTO_MANAGED_KEY: True,
-        "title": _t(hass, "dashboard_title"),
+        "title": _t(lang, "dashboard_title"),
         "views": [
             {
-                "title": _t(hass, "view_zones_title"),
+                "title": _t(lang, "view_zones_title"),
                 "path": "zones",
                 "icon": "mdi:sprinkler-variant",
                 "cards": cards,

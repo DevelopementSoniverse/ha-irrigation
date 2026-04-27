@@ -137,7 +137,8 @@
           "soil_moisture": "Soil moisture"
         }
       },
-      "average_soil_moisture": {"name": "Average soil moisture"}
+      "average_soil_moisture": {"name": "Average soil moisture"},
+      "next_fallback_at": {"name": "Next fallback at"}
     },
     "binary_sensor": {
       "running": {"name": "Running"},

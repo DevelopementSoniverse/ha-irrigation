@@ -137,7 +137,8 @@
           "soil_moisture": "ความชื้นดิน"
         }
       },
-      "average_soil_moisture": {"name": "ความชื้นดินเฉลี่ย"}
+      "average_soil_moisture": {"name": "ความชื้นดินเฉลี่ย"},
+      "next_fallback_at": {"name": "fallback ครั้งถัดไปที่"}
     },
     "binary_sensor": {
       "running": {"name": "กำลังทำงาน"},

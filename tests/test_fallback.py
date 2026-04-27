@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta
 from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
@@ -12,6 +12,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.irrigation_computer.coordinator import (
     IrrigationController,
     in_fallback_window,
+    next_fallback_trigger_at,
 )
 from custom_components.irrigation_computer.models import ZoneConfig
 from tests.common import base_entry_kwargs, make_zone, seed_relay_states
@@ -70,6 +71,65 @@ async def test_fallback_trigger_starts_zone(hass: HomeAssistant) -> None:
     assert rt.last_reason == "fallback"
 
     await controller.async_shutdown()
+
+
+def test_next_fallback_trigger_at_none_when_disabled() -> None:
+    z = _zone_cfg(fallback_enabled=False, fallback_minutes=30)
+    assert next_fallback_trigger_at(z, datetime(2026, 1, 1, 12, 0)) is None
+
+
+def test_next_fallback_trigger_at_none_without_last_run() -> None:
+    z = _zone_cfg(fallback_minutes=30)
+    assert next_fallback_trigger_at(z, None) is None
+
+
+def test_next_fallback_trigger_at_adds_configured_minutes() -> None:
+    z = _zone_cfg(
+        fallback_minutes=30,
+        fallback_start="00:00:00",
+        fallback_end="23:59:59",
+    )
+    last_run = datetime(2026, 4, 27, 8, 0)
+    assert next_fallback_trigger_at(z, last_run) == datetime(2026, 4, 27, 8, 30)
+
+
+def test_next_fallback_trigger_at_clamps_to_minimum() -> None:
+    # fallback_minutes is clamped to a 5..240 range to match the trigger.
+    z = _zone_cfg(
+        fallback_minutes=1,
+        fallback_start="00:00:00",
+        fallback_end="23:59:59",
+    )
+    last_run = datetime(2026, 4, 27, 8, 0)
+    assert next_fallback_trigger_at(z, last_run) == datetime(2026, 4, 27, 8, 5)
+
+
+def test_next_fallback_trigger_at_before_same_day_window() -> None:
+    # Naive trigger lands before the window opens -> shift to window start.
+    z = _zone_cfg(fallback_minutes=30, fallback_start="06:00:00", fallback_end="20:00:00")
+    last_run = datetime(2026, 4, 27, 3, 0)
+    assert next_fallback_trigger_at(z, last_run) == datetime(2026, 4, 27, 6, 0)
+
+
+def test_next_fallback_trigger_at_after_same_day_window() -> None:
+    # Naive trigger lands after the window closed -> next day's window start.
+    z = _zone_cfg(fallback_minutes=30, fallback_start="06:00:00", fallback_end="20:00:00")
+    last_run = datetime(2026, 4, 27, 21, 0)
+    assert next_fallback_trigger_at(z, last_run) == datetime(2026, 4, 28, 6, 0)
+
+
+def test_next_fallback_trigger_at_inside_overnight_window() -> None:
+    z = _zone_cfg(fallback_minutes=30, fallback_start="22:00:00", fallback_end="06:00:00")
+    last_run = datetime(2026, 4, 27, 2, 0)
+    assert next_fallback_trigger_at(z, last_run) == datetime(2026, 4, 27, 2, 30)
+
+
+def test_next_fallback_trigger_at_gap_of_overnight_window() -> None:
+    # Naive trigger lands in the gap (between end and start) of an overnight
+    # window -> shift forward to that day's window start at 22:00.
+    z = _zone_cfg(fallback_minutes=30, fallback_start="22:00:00", fallback_end="06:00:00")
+    last_run = datetime(2026, 4, 27, 9, 0)
+    assert next_fallback_trigger_at(z, last_run) == datetime(2026, 4, 27, 22, 0)
 
 
 async def test_fallback_disabled_does_not_trigger(hass: HomeAssistant) -> None:

@@ -881,6 +881,41 @@ def in_fallback_window(zone: ZoneConfig, now_t: time) -> bool:
     return now_t >= s or now_t <= e
 
 
+def next_fallback_trigger_at(
+    zone: ZoneConfig, last_run_at: datetime
+) -> datetime | None:
+    """Return the earliest time at which a fallback run could fire.
+
+    Combines both conditions enforced by the coordinator:
+    * ``elapsed >= fallback_minutes`` (same 5..240 clamp as the trigger),
+    * ``now.time()`` inside the configured fallback window.
+
+    Returns ``None`` when the fallback is disabled for the zone or no
+    baseline run time is available. If the naive trigger time falls
+    outside the window, the next window start (on the same or the
+    following day) is returned instead.
+    """
+    if not zone.fallback_enabled or last_run_at is None:
+        return None
+    mins = max(5, min(240, int(zone.fallback_minutes)))
+    naive = last_run_at + timedelta(minutes=mins)
+
+    if in_fallback_window(zone, naive.time()):
+        return naive
+
+    s = _parse_time(zone.fallback_start)
+    if s is None:
+        # No window constraint -> the naive trigger time is final.
+        return naive
+
+    candidate = naive.replace(
+        hour=s.hour, minute=s.minute, second=s.second, microsecond=0
+    )
+    if candidate <= naive:
+        candidate = candidate + timedelta(days=1)
+    return candidate
+
+
 def _parse_time(value: str | None) -> time | None:
     if not value:
         return None
