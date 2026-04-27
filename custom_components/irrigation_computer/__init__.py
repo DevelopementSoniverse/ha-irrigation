@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, UnknownEntry
 from homeassistant.const import EVENT_CORE_CONFIG_UPDATE, Platform
 from homeassistant.core import Event, HomeAssistant
 
@@ -70,7 +70,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload the entry when options change so zone changes take effect."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    try:
+        await hass.config_entries.async_reload(entry.entry_id)
+    except UnknownEntry:
+        # Entry may already be removed (e.g. tests or concurrent unload).
+        return
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

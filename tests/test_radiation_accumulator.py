@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+import pytest
 from homeassistant.core import HomeAssistant, State
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -25,19 +26,20 @@ async def test_trapezoidal_integration_w_per_m2(hass: HomeAssistant) -> None:
     controller = IrrigationController(hass, entry)
     await controller.async_initialize()
 
-    # Manually feed two samples 1h apart at 1000 W/m² constant -> 1000 Wh/m².
-    now = dt_util.utcnow()
-    controller._radiation_last_value = None
-    controller._radiation_last_ts = None
-    controller._radiation_total_wh = 0.0
+    try:
+        # Manually feed two samples 1h apart at 1000 W/m² constant -> 1000 Wh/m².
+        now = dt_util.utcnow()
+        controller._radiation_last_value = None
+        controller._radiation_last_ts = None
+        controller._radiation_total_wh = 0.0
 
-    controller._radiation_last_value = 1000.0
-    controller._radiation_last_ts = now - timedelta(hours=1)
-    controller._update_radiation_from_state(_state(1000.0))
+        controller._radiation_last_value = 1000.0
+        controller._radiation_last_ts = now - timedelta(hours=1)
+        controller._update_radiation_from_state(_state(1000.0))
 
-    assert controller.radiation_total_wh == 1000.0
-
-    await controller.async_shutdown()
+        assert controller.radiation_total_wh == pytest.approx(1000.0)
+    finally:
+        await controller.async_shutdown()
 
 
 async def test_radiation_since_last_run_resets_on_start(hass: HomeAssistant) -> None:

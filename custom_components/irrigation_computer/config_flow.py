@@ -11,9 +11,14 @@ import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
-    ConfigFlowResult,
-    OptionsFlow,
+    OptionsFlowWithConfigEntry,
 )
+
+try:
+    from homeassistant.config_entries import ConfigFlowResult
+except ImportError:
+    # Older Home Assistant (< ~2024.12): type not exported from config_entries.
+    ConfigFlowResult = dict[str, Any]  # type: ignore[misc,assignment]
 from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er, selector
 
@@ -421,17 +426,15 @@ class IrrigationComputerConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(
         config_entry: ConfigEntry,
-    ) -> "IrrigationComputerOptionsFlow":
-        return IrrigationComputerOptionsFlow()
+    ) -> IrrigationComputerOptionsFlow:
+        return IrrigationComputerOptionsFlow(config_entry)
 
 
-class IrrigationComputerOptionsFlow(OptionsFlow):
+class IrrigationComputerOptionsFlow(OptionsFlowWithConfigEntry):
     """Multi-step options flow: global / add / edit / delete zones."""
 
-    def __init__(self) -> None:
-        # NOTE: Don't assign self.config_entry here.  In HA 2024.12+ that's a
-        # read-only property on the OptionsFlow base class, set automatically
-        # from the entry the user clicked "Configure" on.
+    def __init__(self, config_entry: ConfigEntry) -> None:
+        super().__init__(config_entry)
         self._edit_zone_id: str | None = None
 
     # ----------------------------------------------- helpers

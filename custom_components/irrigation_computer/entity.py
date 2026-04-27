@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from homeassistant.helpers.device_registry import DeviceInfo
+try:
+    from homeassistant.helpers.device_registry import DeviceInfo
+except ImportError:
+    # Home Assistant before DeviceInfo moved to device_registry.
+    from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN

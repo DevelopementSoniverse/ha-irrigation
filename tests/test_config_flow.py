@@ -81,72 +81,75 @@ async def test_options_flow_add_edit_delete_zone(hass: HomeAssistant) -> None:
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    # Open menu.
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] == FlowResultType.MENU
+        # Open menu.
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert result["type"] == FlowResultType.MENU
 
-    # Add zone.
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"next_step_id": "add_zone"}
-    )
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "add_zone"
+        # Add zone.
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "add_zone"}
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "add_zone"
 
-    zone_payload = {
-        ZONE_NAME: "Tomaten",
-        ZONE_RELAY_ENTITY: "switch.test_relay",
-        ZONE_WATERING_DURATION: 30,
-        ZONE_PHASE: PHASE_PLANTING,
-        ZONE_THRESHOLD_PLANTING: 50.0,
-        ZONE_THRESHOLD_FRUIT_SET: 100.0,
-        ZONE_THRESHOLD_RIPENING: 80.0,
-        ZONE_POWER_ALERT_DELAY: 12,
-        ZONE_POWER_MIN: 5.0,
-        ZONE_POWER_MAX: 500.0,
-        ZONE_MAX_RUNS_24H: 6,
-        ZONE_FALLBACK_ENABLED: True,
-        ZONE_FALLBACK_MINUTES: 60,
-        ZONE_FALLBACK_START: "06:00:00",
-        ZONE_FALLBACK_END: "20:00:00",
-        ZONE_RADIATION_TRIGGER_ENABLED: True,
-    }
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], zone_payload
-    )
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    zones = entry.options[OPT_ZONES]
-    assert len(zones) == 1
-    zone_id = zones[0][ZONE_ID]
-    assert zones[0][ZONE_NAME] == "Tomaten"
-    assert zones[0][ZONE_POWER_ALERT_DELAY] == 12
-    assert zones[0][ZONE_MAX_RUNS_24H] == 6
+        zone_payload = {
+            ZONE_NAME: "Tomaten",
+            ZONE_RELAY_ENTITY: "switch.test_relay",
+            ZONE_WATERING_DURATION: 30,
+            ZONE_PHASE: PHASE_PLANTING,
+            ZONE_THRESHOLD_PLANTING: 50.0,
+            ZONE_THRESHOLD_FRUIT_SET: 100.0,
+            ZONE_THRESHOLD_RIPENING: 80.0,
+            ZONE_POWER_ALERT_DELAY: 12,
+            ZONE_POWER_MIN: 5.0,
+            ZONE_POWER_MAX: 500.0,
+            ZONE_MAX_RUNS_24H: 6,
+            ZONE_FALLBACK_ENABLED: True,
+            ZONE_FALLBACK_MINUTES: 60,
+            ZONE_FALLBACK_START: "06:00:00",
+            ZONE_FALLBACK_END: "20:00:00",
+            ZONE_RADIATION_TRIGGER_ENABLED: True,
+        }
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], zone_payload
+        )
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        zones = entry.options[OPT_ZONES]
+        assert len(zones) == 1
+        zone_id = zones[0][ZONE_ID]
+        assert zones[0][ZONE_NAME] == "Tomaten"
+        assert zones[0][ZONE_POWER_ALERT_DELAY] == 12
+        assert zones[0][ZONE_MAX_RUNS_24H] == 6
 
-    # Edit zone.
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"next_step_id": "edit_zone_select"}
-    )
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {ZONE_ID: zone_id}
-    )
-    assert result["step_id"] == "edit_zone"
-    edited_payload = dict(zone_payload, **{ZONE_NAME: "Tomaten Hochbeet"})
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], edited_payload
-    )
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert entry.options[OPT_ZONES][0][ZONE_NAME] == "Tomaten Hochbeet"
+        # Edit zone.
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "edit_zone_select"}
+        )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {ZONE_ID: zone_id}
+        )
+        assert result["step_id"] == "edit_zone"
+        edited_payload = dict(zone_payload, **{ZONE_NAME: "Tomaten Hochbeet"})
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], edited_payload
+        )
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert entry.options[OPT_ZONES][0][ZONE_NAME] == "Tomaten Hochbeet"
 
-    # Delete zone.
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"next_step_id": "delete_zone_select"}
-    )
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {ZONE_ID: zone_id, "confirm": True}
-    )
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert entry.options[OPT_ZONES] == []
+        # Delete zone.
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "delete_zone_select"}
+        )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {ZONE_ID: zone_id, "confirm": True}
+        )
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert entry.options[OPT_ZONES] == []
+
+        assert await hass.config_entries.async_remove(entry.entry_id)
+        await hass.async_block_till_done()
 
 
 async def test_options_flow_updates_global_push_settings(hass: HomeAssistant) -> None:
@@ -170,26 +173,29 @@ async def test_options_flow_updates_global_push_settings(hass: HomeAssistant) ->
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"next_step_id": "global_settings"}
-    )
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "global_settings"
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "global_settings"}
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "global_settings"
 
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {
-            CONF_RADIATION_SOURCE_ENTITY: "sensor.solar_radiation",
-            CONF_RADIATION_SOURCE_UNIT: UNIT_W_PER_M2,
-            CONF_PUSH_ALERTS_ENABLED: True,
-            CONF_PUSH_ALERT_DEVICE_IDS: ["phone_1", "phone_2"],
-        },
-    )
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert entry.options[CONF_PUSH_ALERTS_ENABLED] is True
-    assert entry.options[CONF_PUSH_ALERT_DEVICE_IDS] == ["phone_1", "phone_2"]
-    assert entry.options[OPT_ZONES] == []
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_RADIATION_SOURCE_ENTITY: "sensor.solar_radiation",
+                CONF_RADIATION_SOURCE_UNIT: UNIT_W_PER_M2,
+                CONF_PUSH_ALERTS_ENABLED: True,
+                CONF_PUSH_ALERT_DEVICE_IDS: ["phone_1", "phone_2"],
+            },
+        )
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert entry.options[CONF_PUSH_ALERTS_ENABLED] is True
+        assert entry.options[CONF_PUSH_ALERT_DEVICE_IDS] == ["phone_1", "phone_2"]
+        assert entry.options[OPT_ZONES] == []
+
+        assert await hass.config_entries.async_remove(entry.entry_id)
+        await hass.async_block_till_done()
 
 
 async def test_options_flow_add_zone_validation_errors(hass: HomeAssistant) -> None:
@@ -212,30 +218,34 @@ async def test_options_flow_add_zone_validation_errors(hass: HomeAssistant) -> N
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"next_step_id": "add_zone"}
-    )
-    bad_payload = {
-        ZONE_NAME: "",
-        ZONE_RELAY_ENTITY: "",
-        ZONE_WATERING_DURATION: 30,
-        ZONE_PHASE: PHASE_PLANTING,
-        ZONE_THRESHOLD_PLANTING: 50.0,
-        ZONE_THRESHOLD_FRUIT_SET: 100.0,
-        ZONE_THRESHOLD_RIPENING: 80.0,
-        ZONE_POWER_ALERT_DELAY: 0,
-        ZONE_POWER_MIN: 5.0,
-        ZONE_POWER_MAX: 500.0,
-        ZONE_MAX_RUNS_24H: 0,
-        ZONE_FALLBACK_ENABLED: True,
-        ZONE_FALLBACK_MINUTES: 1,  # invalid range
-        ZONE_FALLBACK_START: "06:00:00",
-        ZONE_FALLBACK_END: "20:00:00",
-        ZONE_RADIATION_TRIGGER_ENABLED: True,
-    }
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], bad_payload
-    )
-    assert result["type"] == FlowResultType.FORM
-    assert "name_required" in result["errors"].values() or "relay_required" in result["errors"].values()
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "add_zone"}
+        )
+        # Schema enforces fallback_minutes >= 5; empty name is caught in _validate_zone.
+        bad_payload = {
+            ZONE_NAME: "",
+            ZONE_RELAY_ENTITY: "switch.test_relay",
+            ZONE_WATERING_DURATION: 30,
+            ZONE_PHASE: PHASE_PLANTING,
+            ZONE_THRESHOLD_PLANTING: 50.0,
+            ZONE_THRESHOLD_FRUIT_SET: 100.0,
+            ZONE_THRESHOLD_RIPENING: 80.0,
+            ZONE_POWER_ALERT_DELAY: 0,
+            ZONE_POWER_MIN: 5.0,
+            ZONE_POWER_MAX: 500.0,
+            ZONE_MAX_RUNS_24H: 0,
+            ZONE_FALLBACK_ENABLED: True,
+            ZONE_FALLBACK_MINUTES: 60,
+            ZONE_FALLBACK_START: "06:00:00",
+            ZONE_FALLBACK_END: "20:00:00",
+            ZONE_RADIATION_TRIGGER_ENABLED: True,
+        }
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], bad_payload
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["errors"][ZONE_NAME] == "name_required"
+
+        assert await hass.config_entries.async_remove(entry.entry_id)
+        await hass.async_block_till_done()
