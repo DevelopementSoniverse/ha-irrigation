@@ -284,7 +284,7 @@ def _zone_schema(
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
-                    device_class="humidity",
+                    device_class=["humidity", "moisture"],
                     multiple=True,
                     exclude_entities=list(exclude_moisture_entities),
                 )
