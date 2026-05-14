@@ -104,7 +104,9 @@ async def test_radiation_trigger_outside_fallback_window_blocked(
     await controller.async_shutdown()
 
 
-async def test_radiation_source_unavailable_sends_alert(hass: HomeAssistant) -> None:
+async def test_radiation_source_unavailable_sends_alert_after_grace(
+    hass: HomeAssistant,
+) -> None:
     zone = make_zone(radiation_trigger_enabled=True)
     entry = MockConfigEntry(
         **base_entry_kwargs(radiation_source="sensor.solar_radiation", zones=[zone])
@@ -112,17 +114,76 @@ async def test_radiation_source_unavailable_sends_alert(hass: HomeAssistant) -> 
     entry.add_to_hass(hass)
     hass.states.async_set("sensor.solar_radiation", "unavailable")
     controller = IrrigationController(hass, entry)
+    await controller.async_initialize()
 
-    with patch.object(hass.services, "async_call") as mock_call:
-        await controller.async_initialize()
+    from homeassistant.util import dt as dt_util
+
+    t0 = dt_util.utcnow()
+
+    # First tick within the grace period: no alert should be sent yet.
+    with patch(
+        "custom_components.irrigation_computer.coordinator.dt_util.utcnow",
+        return_value=t0,
+    ), patch.object(hass.services, "async_call") as mock_call_early:
+        await controller.async_refresh()
+
+    assert not any(
+        c.args[:2] == ("persistent_notification", "create")
+        and c.args[2]["notification_id"]
+        == "irrigation_computer_radiation_source_unavailable"
+        for c in mock_call_early.call_args_list
+    )
+
+    # Advance past the 10-minute grace period: alert must fire now.
+    with patch(
+        "custom_components.irrigation_computer.coordinator.dt_util.utcnow",
+        return_value=t0 + timedelta(minutes=11),
+    ), patch.object(hass.services, "async_call") as mock_call_late:
         await controller.async_refresh()
 
     assert any(
         c.args[:2] == ("persistent_notification", "create")
         and c.args[2]["notification_id"]
         == "irrigation_computer_radiation_source_unavailable"
+        for c in mock_call_late.call_args_list
+    )
+
+    await controller.async_shutdown()
+
+
+async def test_radiation_source_brief_outage_does_not_alert(
+    hass: HomeAssistant,
+) -> None:
+    """A short outage that recovers within the grace period must not alert."""
+    zone = make_zone(radiation_trigger_enabled=True)
+    entry = MockConfigEntry(
+        **base_entry_kwargs(radiation_source="sensor.solar_radiation", zones=[zone])
+    )
+    entry.add_to_hass(hass)
+    controller = IrrigationController(hass, entry)
+    await controller.async_initialize()
+
+    unavailable_state = State("sensor.solar_radiation", "unavailable")
+    recovered_state = State(
+        "sensor.solar_radiation",
+        "120",
+        last_updated=datetime.now(timezone.utc),
+    )
+
+    with patch.object(hass.services, "async_call") as mock_call:
+        # Several ticks while unavailable, all well within the 10 min grace period.
+        await controller._async_check_radiation_source_alert(unavailable_state)
+        await controller._async_check_radiation_source_alert(unavailable_state)
+        # Source recovers before the grace period expires.
+        await controller._async_check_radiation_source_alert(recovered_state)
+
+    assert not any(
+        c.args[:2] == ("persistent_notification", "create")
+        and c.args[2]["notification_id"]
+        == "irrigation_computer_radiation_source_unavailable"
         for c in mock_call.call_args_list
     )
+    assert controller._radiation_unavailable_since is None
 
     await controller.async_shutdown()
 

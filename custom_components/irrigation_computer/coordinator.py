@@ -35,6 +35,7 @@ from .const import (
     OPT_ZONES,
     POWER_WAIT_SECONDS,
     RADIATION_STALE_SECONDS,
+    RADIATION_UNAVAILABLE_GRACE_SECONDS,
     REASON_FALLBACK,
     REASON_MANUAL,
     REASON_MOISTURE,
@@ -75,6 +76,10 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         self._radiation_total_wh: float = 0.0
         self._radiation_last_value: float | None = None
         self._radiation_last_ts: datetime | None = None
+        # First time the radiation source was observed as unavailable. Used to
+        # delay the unavailable-alert by RADIATION_UNAVAILABLE_GRACE_SECONDS so
+        # short hiccups (HA restart, sensor refresh, MQTT blip) don't fire.
+        self._radiation_unavailable_since: datetime | None = None
         self._radiation_source: str | None = (
             entry.data.get(CONF_RADIATION_SOURCE_ENTITY)
             or entry.options.get(CONF_RADIATION_SOURCE_ENTITY)
@@ -745,27 +750,38 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_check_radiation_source_alert(self, state: State | None) -> None:
         suffix = "radiation_source_unavailable"
+        stale_suffix = "radiation_source_stale"
+        now = dt_util.utcnow()
+
         if state is None or state.state in (None, "", STATE_UNKNOWN, STATE_UNAVAILABLE):
+            if self._radiation_unavailable_since is None:
+                self._radiation_unavailable_since = now
+                return
+            unavailable_for = (now - self._radiation_unavailable_since).total_seconds()
+            if unavailable_for < RADIATION_UNAVAILABLE_GRACE_SECONDS:
+                return
             await self._async_notify_once(
                 suffix,
                 "Radiation source unavailable",
-                f"Radiation source {self._radiation_source} is unavailable, "
-                "so radiation-based irrigation cannot be evaluated.",
+                f"Radiation source {self._radiation_source} has been unavailable "
+                f"for {round(unavailable_for / 60)} minutes, so radiation-based "
+                "irrigation cannot be evaluated.",
             )
             return
+
+        self._radiation_unavailable_since = None
 
         try:
             value = float(state.state)
         except (TypeError, ValueError):
             value = None
 
-        stale_suffix = "radiation_source_stale"
         if value is not None and value <= 0:
             self._clear_alert(suffix)
             self._clear_alert(stale_suffix)
             return
 
-        age = (dt_util.utcnow() - state.last_updated).total_seconds()
+        age = (now - state.last_updated).total_seconds()
         if age > RADIATION_STALE_SECONDS:
             self._clear_alert(suffix)
             await self._async_notify_once(
