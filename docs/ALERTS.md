@@ -70,7 +70,7 @@ instance.
 
 | Error code | Triggered by | Effect | Notification |
 |---|---|---|---|
-| `radiation_source_unavailable` | Configured radiation source entity is missing or in state `unavailable` / `unknown` for at least `RADIATION_UNAVAILABLE_GRACE_SECONDS` (10 minutes) without interruption | Radiation integration pauses; **radiation-based triggers cannot fire** until the source is available again | Persistent + push |
+| `radiation_source_unavailable` | Configured radiation source entity is missing or in state `unavailable` / `unknown`. **Without** a weather-station power switch: uninterrupted for at least `RADIATION_UNAVAILABLE_GRACE_SECONDS` (10 minutes). **With** `weather_station_power_entity` configured: after 5 minutes the switch is power-cycled (off 30 s, then on); the alert fires only if the source is still unavailable 5 minutes after that cycle | Radiation integration pauses; **radiation-based triggers cannot fire** until the source is available again | Persistent + push |
 | `radiation_source_stale` | Source reports `> 0 W/m²` but has not updated in more than `RADIATION_STALE_SECONDS` (2 h) | Same as above – the sensor is considered stuck, radiation triggers are effectively paused | Persistent + push |
 
 Both alerts are automatically cleared as soon as the source reports a fresh

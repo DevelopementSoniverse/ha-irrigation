@@ -13,6 +13,7 @@ from custom_components.irrigation_computer.const import (
     CONF_PUSH_ALERTS_ENABLED,
     CONF_RADIATION_SOURCE_ENTITY,
     CONF_RADIATION_SOURCE_UNIT,
+    CONF_WEATHER_STATION_POWER_ENTITY,
     DOMAIN,
     OPT_ZONES,
     UNIT_W_PER_M2,
@@ -49,12 +50,14 @@ async def test_user_config_flow_creates_entry(hass: HomeAssistant) -> None:
         {
             CONF_RADIATION_SOURCE_ENTITY: "sensor.solar_radiation",
             CONF_RADIATION_SOURCE_UNIT: UNIT_W_PER_M2,
+            CONF_WEATHER_STATION_POWER_ENTITY: "switch.weather_psu",
             CONF_PUSH_ALERTS_ENABLED: True,
             CONF_PUSH_ALERT_DEVICE_IDS: ["phone_1", "phone_2"],
         },
     )
     assert result2["type"] == FlowResultType.CREATE_ENTRY
     assert result2["data"][CONF_RADIATION_SOURCE_ENTITY] == "sensor.solar_radiation"
+    assert result2["data"][CONF_WEATHER_STATION_POWER_ENTITY] == "switch.weather_psu"
     assert result2["data"][CONF_PUSH_ALERTS_ENABLED] is True
     assert result2["data"][CONF_PUSH_ALERT_DEVICE_IDS] == ["phone_1", "phone_2"]
     assert result2["options"] == {OPT_ZONES: []}
@@ -185,6 +188,7 @@ async def test_options_flow_updates_global_push_settings(hass: HomeAssistant) ->
             {
                 CONF_RADIATION_SOURCE_ENTITY: "sensor.solar_radiation",
                 CONF_RADIATION_SOURCE_UNIT: UNIT_W_PER_M2,
+                CONF_WEATHER_STATION_POWER_ENTITY: "switch.irrigation_5",
                 CONF_PUSH_ALERTS_ENABLED: True,
                 CONF_PUSH_ALERT_DEVICE_IDS: ["phone_1", "phone_2"],
             },
@@ -192,6 +196,7 @@ async def test_options_flow_updates_global_push_settings(hass: HomeAssistant) ->
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert entry.options[CONF_PUSH_ALERTS_ENABLED] is True
         assert entry.options[CONF_PUSH_ALERT_DEVICE_IDS] == ["phone_1", "phone_2"]
+        assert entry.options[CONF_WEATHER_STATION_POWER_ENTITY] == "switch.irrigation_5"
         assert entry.options[OPT_ZONES] == []
 
         assert await hass.config_entries.async_remove(entry.entry_id)

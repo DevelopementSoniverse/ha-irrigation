@@ -1,0 +1,156 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb_ha"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": true
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "mean"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "influxdb_ha" },
+          "query": "SELECT mean(\"value\") FROM \"%\" WHERE \"entity_id\" = 'gw3000a_soil_moisture_1' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "alias": "soil_moisture_1"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "influxdb_ha" },
+          "query": "SELECT mean(\"value\") FROM \"%\" WHERE \"entity_id\" = 'gw3000a_soil_moisture_2' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "refId": "B",
+          "resultFormat": "time_series",
+          "alias": "soil_moisture_2"
+        }
+      ],
+      "title": "Bodenfeuchte (%)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb_ha"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "auto",
+            "spanNulls": true
+          },
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "influxdb_ha" },
+          "query": "SELECT mean(\"value\") FROM \"W\" WHERE \"entity_id\" = 'randreihe_leistung' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "alias": "randreihe_leistung"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "influxdb_ha" },
+          "query": "SELECT mean(\"value\") FROM \"W\" WHERE \"entity_id\" = 'irrigation_2_leistung' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "refId": "B",
+          "resultFormat": "time_series",
+          "alias": "irrigation_2_leistung"
+        }
+      ],
+      "title": "Randreihe Leistung (W)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb_ha"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "auto",
+            "spanNulls": true
+          },
+          "unit": "radiation"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 9 },
+      "id": 3,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "influxdb_ha" },
+          "query": "SELECT mean(\"value\") FROM \"W/m²\" WHERE \"entity_id\" = 'gw3000a_solar_radiation' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "alias": "gw3000a_solar_radiation"
+        }
+      ],
+      "title": "Globalstrahlung (W/m²)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["irrigation", "verification", "influxdb"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Irrigation Verification",
+  "uid": "irrigation-verification",
+  "version": 1
+}

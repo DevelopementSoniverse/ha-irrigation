@@ -12,6 +12,7 @@ CONF_PUSH_ALERT_DEVICE_IDS: Final = "push_alert_device_ids"
 CONF_PUSH_ALERTS_ENABLED: Final = "push_alerts_enabled"
 CONF_RADIATION_SOURCE_ENTITY: Final = "radiation_source_entity"
 CONF_RADIATION_SOURCE_UNIT: Final = "radiation_source_unit"
+CONF_WEATHER_STATION_POWER_ENTITY: Final = "weather_station_power_entity"
 
 # Dashboard language option values. "auto" follows hass.config.language;
 # an explicit code overrides the server language for the Lovelace dashboard.
@@ -109,6 +110,9 @@ WATCHDOG_GRACE_SECONDS: Final = 5
 POWER_WAIT_SECONDS: Final = 30
 RADIATION_STALE_SECONDS: Final = 2 * 60 * 60
 RADIATION_UNAVAILABLE_GRACE_SECONDS: Final = 10 * 60
+RADIATION_POWER_CYCLE_DELAY_SECONDS: Final = 5 * 60
+RADIATION_POWER_CYCLE_OFF_SECONDS: Final = 30
+RADIATION_POWER_CYCLE_RECOVERY_SECONDS: Final = 5 * 60
 
 # Services
 SERVICE_START_ZONE: Final = "start_zone"

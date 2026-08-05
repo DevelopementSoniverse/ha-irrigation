@@ -28,12 +28,16 @@ from .const import (
     CONF_PUSH_ALERTS_ENABLED,
     CONF_RADIATION_SOURCE_ENTITY,
     CONF_RADIATION_SOURCE_UNIT,
+    CONF_WEATHER_STATION_POWER_ENTITY,
     DEFAULT_PUSH_ALERTS_ENABLED,
     DEFAULT_RADIATION_SOURCE_UNIT,
     DOMAIN,
     NOTIFICATION_ID_PREFIX,
     OPT_ZONES,
     POWER_WAIT_SECONDS,
+    RADIATION_POWER_CYCLE_DELAY_SECONDS,
+    RADIATION_POWER_CYCLE_OFF_SECONDS,
+    RADIATION_POWER_CYCLE_RECOVERY_SECONDS,
     RADIATION_STALE_SECONDS,
     RADIATION_UNAVAILABLE_GRACE_SECONDS,
     REASON_FALLBACK,
@@ -77,18 +81,26 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         self._radiation_last_value: float | None = None
         self._radiation_last_ts: datetime | None = None
         # First time the radiation source was observed as unavailable. Used to
-        # delay the unavailable-alert by RADIATION_UNAVAILABLE_GRACE_SECONDS so
-        # short hiccups (HA restart, sensor refresh, MQTT blip) don't fire.
+        # delay the unavailable-alert / weather-station power-cycle so short
+        # hiccups (HA restart, sensor refresh, MQTT blip) don't fire.
         self._radiation_unavailable_since: datetime | None = None
+        self._radiation_power_cycle_attempted: bool = False
+        self._radiation_power_cycle_finished_at: datetime | None = None
+        self._radiation_power_cycle_task: asyncio.Task | None = None
         self._radiation_source: str | None = (
-            entry.data.get(CONF_RADIATION_SOURCE_ENTITY)
-            or entry.options.get(CONF_RADIATION_SOURCE_ENTITY)
+            entry.options.get(CONF_RADIATION_SOURCE_ENTITY)
+            or entry.data.get(CONF_RADIATION_SOURCE_ENTITY)
         )
         self._radiation_unit: str = (
             entry.options.get(CONF_RADIATION_SOURCE_UNIT)
             or entry.data.get(CONF_RADIATION_SOURCE_UNIT)
             or DEFAULT_RADIATION_SOURCE_UNIT
         )
+        raw_power = (
+            entry.options.get(CONF_WEATHER_STATION_POWER_ENTITY)
+            or entry.data.get(CONF_WEATHER_STATION_POWER_ENTITY)
+        )
+        self._weather_station_power_entity: str | None = raw_power or None
         self._push_alerts_enabled: bool = bool(
             entry.options.get(
                 CONF_PUSH_ALERTS_ENABLED,
@@ -187,6 +199,10 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
     @property
     def radiation_source_entity(self) -> str | None:
         return self._radiation_source
+
+    @property
+    def weather_station_power_entity(self) -> str | None:
+        return self._weather_station_power_entity
 
     @property
     def radiation_total_wh(self) -> float:
@@ -748,6 +764,69 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             f"{zone.watering_duration_sec + WATCHDOG_GRACE_SECONDS} seconds.",
         )
 
+    def _reset_radiation_outage_state(self) -> None:
+        """Clear unavailable timer and cancel any in-flight power-cycle."""
+        task = self._radiation_power_cycle_task
+        self._radiation_power_cycle_task = None
+        if task is not None and not task.done():
+            task.cancel()
+        self._radiation_unavailable_since = None
+        self._radiation_power_cycle_attempted = False
+        self._radiation_power_cycle_finished_at = None
+
+    async def _async_power_cycle_weather_station(self) -> None:
+        """Turn the weather-station PSU off, wait, then turn it back on.
+
+        ``turn_on`` runs in ``finally`` so a cancel mid-sleep cannot leave the
+        station permanently powered off. ``finished_at`` is only recorded when
+        the outage is still active (recovery may have already reset state).
+        """
+        entity = self._weather_station_power_entity
+        if not entity:
+            if self._radiation_unavailable_since is not None:
+                self._radiation_power_cycle_finished_at = dt_util.utcnow()
+            return
+
+        _LOGGER.info(
+            "Power-cycling weather station via %s after radiation source outage",
+            entity,
+        )
+        try:
+            try:
+                await self.hass.services.async_call(
+                    "switch",
+                    SERVICE_TURN_OFF,
+                    {"entity_id": entity},
+                    blocking=True,
+                )
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception(
+                    "Failed to turn off weather station power switch %s", entity
+                )
+            try:
+                await asyncio.sleep(RADIATION_POWER_CYCLE_OFF_SECONDS)
+            except asyncio.CancelledError:
+                raise
+        finally:
+            try:
+                await self.hass.services.async_call(
+                    "switch",
+                    SERVICE_TURN_ON,
+                    {"entity_id": entity},
+                    blocking=True,
+                )
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception(
+                    "Failed to turn on weather station power switch %s", entity
+                )
+            if (
+                self._radiation_power_cycle_attempted
+                and self._radiation_unavailable_since is not None
+            ):
+                self._radiation_power_cycle_finished_at = dt_util.utcnow()
+            if self._radiation_power_cycle_task is asyncio.current_task():
+                self._radiation_power_cycle_task = None
+
     async def _async_check_radiation_source_alert(self, state: State | None) -> None:
         suffix = "radiation_source_unavailable"
         stale_suffix = "radiation_source_stale"
@@ -758,8 +837,28 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
                 self._radiation_unavailable_since = now
                 return
             unavailable_for = (now - self._radiation_unavailable_since).total_seconds()
-            if unavailable_for < RADIATION_UNAVAILABLE_GRACE_SECONDS:
+
+            if self._weather_station_power_entity:
+                if unavailable_for < RADIATION_POWER_CYCLE_DELAY_SECONDS:
+                    return
+                if not self._radiation_power_cycle_attempted:
+                    self._radiation_power_cycle_attempted = True
+                    task = self.hass.async_create_task(
+                        self._async_power_cycle_weather_station()
+                    )
+                    self._radiation_power_cycle_task = task
+                    self._track_monitor_task(task)
+                    return
+                if self._radiation_power_cycle_finished_at is None:
+                    return
+                since_cycle = (
+                    now - self._radiation_power_cycle_finished_at
+                ).total_seconds()
+                if since_cycle < RADIATION_POWER_CYCLE_RECOVERY_SECONDS:
+                    return
+            elif unavailable_for < RADIATION_UNAVAILABLE_GRACE_SECONDS:
                 return
+
             await self._async_notify_once(
                 suffix,
                 "Radiation source unavailable",
@@ -769,7 +868,7 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             )
             return
 
-        self._radiation_unavailable_since = None
+        self._reset_radiation_outage_state()
 
         try:
             value = float(state.state)

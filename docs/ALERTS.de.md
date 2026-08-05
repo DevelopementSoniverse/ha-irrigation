@@ -76,7 +76,7 @@ Integration.
 
 | Fehlercode | Auslöser | Auswirkung | Benachrichtigung |
 |---|---|---|---|
-| `radiation_source_unavailable` | Die konfigurierte Strahlungsquelle fehlt oder ist im Zustand `unavailable` / `unknown` – und das ununterbrochen länger als `RADIATION_UNAVAILABLE_GRACE_SECONDS` (10 Minuten) | Die Strahlungsintegration pausiert; **strahlungsbasierte Trigger können nicht auslösen**, bis die Quelle wieder verfügbar ist | Persistent + Push |
+| `radiation_source_unavailable` | Die konfigurierte Strahlungsquelle fehlt oder ist im Zustand `unavailable` / `unknown`. **Ohne** Netzteil-Relais: ununterbrochen länger als `RADIATION_UNAVAILABLE_GRACE_SECONDS` (10 Minuten). **Mit** konfiguriertem `weather_station_power_entity`: nach 5 Minuten Power-Cycle (30 s aus, dann an); der Alert kommt erst, wenn die Quelle 5 Minuten nach dem Cycle weiterhin unavailable ist | Die Strahlungsintegration pausiert; **strahlungsbasierte Trigger können nicht auslösen**, bis die Quelle wieder verfügbar ist | Persistent + Push |
 | `radiation_source_stale` | Die Quelle meldet `> 0 W/m²`, wurde aber seit mehr als `RADIATION_STALE_SECONDS` (2 Stunden) nicht aktualisiert | Wie oben – der Sensor gilt als festgefahren, Strahlungs-Trigger pausieren effektiv | Persistent + Push |
 
 Beide Alarme werden automatisch gelöscht, sobald die Quelle wieder einen

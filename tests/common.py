@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from custom_components.irrigation_computer.const import (
     CONF_RADIATION_SOURCE_ENTITY,
     CONF_RADIATION_SOURCE_UNIT,
+    CONF_WEATHER_STATION_POWER_ENTITY,
     DOMAIN,
     OPT_ZONES,
     UNIT_W_PER_M2,
@@ -88,15 +89,21 @@ def make_zone(
 
 
 def base_entry_kwargs(
-    radiation_source: str | None = None, zones: list[dict[str, Any]] | None = None
+    radiation_source: str | None = None,
+    zones: list[dict[str, Any]] | None = None,
+    weather_station_power: str | None = None,
 ) -> dict[str, Any]:
+    data: dict[str, Any] = {
+        CONF_RADIATION_SOURCE_ENTITY: radiation_source,
+        CONF_RADIATION_SOURCE_UNIT: UNIT_W_PER_M2,
+    }
+    options: dict[str, Any] = {OPT_ZONES: zones or []}
+    if weather_station_power is not None:
+        options[CONF_WEATHER_STATION_POWER_ENTITY] = weather_station_power
     return {
         "domain": DOMAIN,
-        "data": {
-            CONF_RADIATION_SOURCE_ENTITY: radiation_source,
-            CONF_RADIATION_SOURCE_UNIT: UNIT_W_PER_M2,
-        },
-        "options": {OPT_ZONES: zones or []},
+        "data": data,
+        "options": options,
         "title": "Irrigation Computer",
     }
 

@@ -1,0 +1,57 @@
+---
+description: SSH-Zugang und Deploy zum Bewässerungscomputer / Triesdorf Home Assistant
+alwaysApply: true
+---
+
+# SSH: Triesdorf Home Assistant
+
+Der Bewässerungscomputer (Home Assistant OS) ist per SSH erreichbar über den Alias:
+
+```bash
+ssh triesdorfHomeAssistant
+```
+
+## Verbindungsdaten
+
+| | |
+|---|---|
+| Alias | `triesdorfHomeAssistant` |
+| Host | `100.67.226.35` |
+| User | `root` |
+| Key | `~/.ssh/id_rsa` |
+| Hostname remote | `core-ssh` |
+| Config-Pfad | `/config` (→ `/homeassistant`) |
+
+Konfiguration liegt in `~/.ssh/config`. Befehle remote mit `ssh triesdorfHomeAssistant '<cmd>'` ausführen.
+
+## Deploy: kein rsync — immer scp (oder tar über SSH)
+
+Das SSH-Addon (Alpine) hat **kein `rsync`**. `rsync` über SSH braucht die Binary auf **beiden** Seiten → schlägt fehl. Vorhanden sind u. a. `scp`, `sftp` und `tar`.
+
+**Nicht verwenden:** `rsync … triesdorfHomeAssistant:…`
+
+**Stattdessen — Verzeichnis/Integration deployen:**
+
+```bash
+# Empfohlen: rekursiv mit scp (Client pusht per SFTP, braucht kein rsync remote)
+scp -r custom_components/irrigation_computer \
+  triesdorfHomeAssistant:/config/custom_components/
+```
+
+**Alternative bei vielen Dateien** (ein Stream, oft schneller):
+
+```bash
+tar czf - -C custom_components irrigation_computer \
+  | ssh triesdorfHomeAssistant 'tar xzf - -C /config/custom_components'
+```
+
+**Einzeldateien:**
+
+```bash
+scp path/to/file.yaml triesdorfHomeAssistant:/config/packages/
+```
+
+Hinweise:
+
+- `scp -r` und tar-Pipe **löschen keine** remote entfernten Dateien. Bei Umbenennungen/Löschungen Zielordner vorher leeren oder die Dateien explizit remote entfernen.
+- Nach Code-Deploy der Integration: Home Assistant Core neu starten (`ha core restart`).

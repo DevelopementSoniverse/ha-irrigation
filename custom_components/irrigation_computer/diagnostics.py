@@ -8,10 +8,18 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_PUSH_ALERT_DEVICE_IDS, DOMAIN
+from .const import (
+    CONF_PUSH_ALERT_DEVICE_IDS,
+    CONF_WEATHER_STATION_POWER_ENTITY,
+    DOMAIN,
+)
 from .coordinator import IrrigationController
 
-REDACT_KEYS = {"radiation_source_entity", CONF_PUSH_ALERT_DEVICE_IDS}
+REDACT_KEYS = {
+    "radiation_source_entity",
+    CONF_WEATHER_STATION_POWER_ENTITY,
+    CONF_PUSH_ALERT_DEVICE_IDS,
+}
 
 
 async def async_get_config_entry_diagnostics(
@@ -30,6 +38,7 @@ async def async_get_config_entry_diagnostics(
         data["controller"] = {
             "radiation_total_wh": controller.radiation_total_wh,
             "radiation_source_entity": controller.radiation_source_entity,
+            "weather_station_power_entity": controller.weather_station_power_entity,
             "zones": [
                 {
                     "config": z.to_dict(),

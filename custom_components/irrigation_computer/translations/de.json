@@ -8,6 +8,7 @@
         "data": {
           "radiation_source_entity": "Strahlungssensor (z.B. Solarstrahlung)",
           "radiation_source_unit": "Einheit der Strahlungsquelle",
+          "weather_station_power_entity": "Netzteil Wetterstation (optional, Power-Cycle)",
           "push_alerts_enabled": "Custom-Component-Alerts als Push senden",
           "push_alert_device_ids": "Smartphones für Push-Nachrichten"
         }
@@ -33,6 +34,7 @@
         "data": {
           "radiation_source_entity": "Strahlungssensor",
           "radiation_source_unit": "Einheit der Strahlungsquelle",
+          "weather_station_power_entity": "Netzteil Wetterstation (optional, Power-Cycle)",
           "push_alerts_enabled": "Custom-Component-Alerts als Push senden",
           "push_alert_device_ids": "Smartphones für Push-Nachrichten"
         }

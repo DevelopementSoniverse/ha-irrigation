@@ -8,6 +8,7 @@
         "data": {
           "radiation_source_entity": "เซ็นเซอร์แหล่งรังสี (เช่น รังสีดวงอาทิตย์)",
           "radiation_source_unit": "หน่วยของแหล่งรังสี",
+          "weather_station_power_entity": "สวิตช์ไฟสถานีอากาศ (ไม่บังคับ, รีสตาร์ทด้วยการตัดไฟ)",
           "push_alerts_enabled": "ส่งการแจ้งเตือนของคอมโพเนนต์แบบพุช",
           "push_alert_device_ids": "สมาร์ตโฟนสำหรับการแจ้งเตือนแบบพุช"
         }
@@ -33,6 +34,7 @@
         "data": {
           "radiation_source_entity": "เซ็นเซอร์แหล่งรังสี",
           "radiation_source_unit": "หน่วยของแหล่งรังสี",
+          "weather_station_power_entity": "สวิตช์ไฟสถานีอากาศ (ไม่บังคับ, รีสตาร์ทด้วยการตัดไฟ)",
           "push_alerts_enabled": "ส่งการแจ้งเตือนของคอมโพเนนต์แบบพุช",
           "push_alert_device_ids": "สมาร์ตโฟนสำหรับการแจ้งเตือนแบบพุช"
         }

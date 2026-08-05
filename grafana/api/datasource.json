@@ -1,0 +1,19 @@
+{
+  "name": "InfluxDB-HomeAssistant",
+  "uid": "influxdb_ha",
+  "type": "influxdb",
+  "access": "proxy",
+  "url": "http://a0d7b954-influxdb:8086",
+  "isDefault": true,
+  "database": "homeassistant",
+  "user": "homeassistant",
+  "basicAuth": false,
+  "jsonData": {
+    "httpMode": "GET",
+    "version": "InfluxQL",
+    "timeInterval": "30s"
+  },
+  "secureJsonData": {
+    "password": "REPLACE_WITH_INFLUX_PASSWORD"
+  }
+}

@@ -8,6 +8,7 @@
         "data": {
           "radiation_source_entity": "Radiation source sensor (e.g. solar irradiance)",
           "radiation_source_unit": "Radiation source unit",
+          "weather_station_power_entity": "Weather station power switch (optional, power-cycle)",
           "push_alerts_enabled": "Send custom component alerts as push notifications",
           "push_alert_device_ids": "Smartphones for push notifications"
         }
@@ -33,6 +34,7 @@
         "data": {
           "radiation_source_entity": "Radiation source sensor",
           "radiation_source_unit": "Radiation source unit",
+          "weather_station_power_entity": "Weather station power switch (optional, power-cycle)",
           "push_alerts_enabled": "Send custom component alerts as push notifications",
           "push_alert_device_ids": "Smartphones for push notifications"
         }

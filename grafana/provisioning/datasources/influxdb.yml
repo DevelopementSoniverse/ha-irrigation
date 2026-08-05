@@ -1,0 +1,25 @@
+# Grafana file provisioning (optional).
+# Community Addon a0d7b954_grafana mapped keine /addon_configs-Provisioning-Pfade.
+# Primärer Weg: HTTP-API (siehe grafana/scripts/provision_via_api.sh).
+#
+# Falls du Provisioning-Dateien nutzt: Passwort NICHT committen.
+# Setze z.B. per Addon env_vars GF_DATASOURCE… oder ersetze ${INFLUXDB_PASSWORD}
+# vor dem Deploy aus /tmp/ha-influx-secrets/influxdb_password.
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB-HomeAssistant
+    uid: influxdb_ha
+    type: influxdb
+    access: proxy
+    url: http://a0d7b954-influxdb:8086
+    isDefault: true
+    editable: true
+    database: homeassistant
+    user: homeassistant
+    jsonData:
+      httpMode: GET
+      version: InfluxQL
+      timeInterval: 30s
+    secureJsonData:
+      password: ${INFLUXDB_PASSWORD}

@@ -28,6 +28,7 @@ from .const import (
     CONF_PUSH_ALERTS_ENABLED,
     CONF_RADIATION_SOURCE_ENTITY,
     CONF_RADIATION_SOURCE_UNIT,
+    CONF_WEATHER_STATION_POWER_ENTITY,
     DASHBOARD_LANGUAGES,
     DEFAULT_DASHBOARD_LANGUAGE,
     DEFAULT_FALLBACK_END,
@@ -126,6 +127,13 @@ def _initial_global_schema(defaults: dict[str, Any] | None = None) -> vol.Schema
                     CONF_RADIATION_SOURCE_UNIT, DEFAULT_RADIATION_SOURCE_UNIT
                 ),
             ): _radiation_unit_selector(),
+            vol.Optional(
+                CONF_WEATHER_STATION_POWER_ENTITY,
+                default=defaults.get(CONF_WEATHER_STATION_POWER_ENTITY)
+                or vol.UNDEFINED,
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="switch")
+            ),
             vol.Required(
                 CONF_PUSH_ALERTS_ENABLED,
                 default=defaults.get(
@@ -403,6 +411,10 @@ class IrrigationComputerConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_RADIATION_SOURCE_UNIT: user_input.get(
                         CONF_RADIATION_SOURCE_UNIT, DEFAULT_RADIATION_SOURCE_UNIT
                     ),
+                    CONF_WEATHER_STATION_POWER_ENTITY: user_input.get(
+                        CONF_WEATHER_STATION_POWER_ENTITY
+                    )
+                    or None,
                     CONF_PUSH_ALERTS_ENABLED: bool(
                         user_input.get(
                             CONF_PUSH_ALERTS_ENABLED,
@@ -500,6 +512,10 @@ class IrrigationComputerOptionsFlow(OptionsFlowWithConfigEntry):
                     CONF_RADIATION_SOURCE_UNIT, DEFAULT_RADIATION_SOURCE_UNIT
                 ),
             ),
+            CONF_WEATHER_STATION_POWER_ENTITY: self.config_entry.options.get(
+                CONF_WEATHER_STATION_POWER_ENTITY,
+                self.config_entry.data.get(CONF_WEATHER_STATION_POWER_ENTITY),
+            ),
             CONF_PUSH_ALERTS_ENABLED: self.config_entry.options.get(
                 CONF_PUSH_ALERTS_ENABLED,
                 self.config_entry.data.get(
@@ -526,6 +542,9 @@ class IrrigationComputerOptionsFlow(OptionsFlowWithConfigEntry):
             )
             new_options[CONF_RADIATION_SOURCE_UNIT] = user_input.get(
                 CONF_RADIATION_SOURCE_UNIT, DEFAULT_RADIATION_SOURCE_UNIT
+            )
+            new_options[CONF_WEATHER_STATION_POWER_ENTITY] = (
+                user_input.get(CONF_WEATHER_STATION_POWER_ENTITY) or None
             )
             new_options[CONF_PUSH_ALERTS_ENABLED] = bool(
                 user_input.get(
