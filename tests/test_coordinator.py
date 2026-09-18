@@ -230,6 +230,16 @@ def _unavailable_alert_calls(mock_call) -> list:
     ]
 
 
+def _stale_alert_calls(mock_call) -> list:
+    return [
+        c
+        for c in mock_call.call_args_list
+        if c.args[:2] == ("persistent_notification", "create")
+        and c.args[2]["notification_id"]
+        == "irrigation_computer_radiation_source_stale"
+    ]
+
+
 def _switch_calls(mock_call, service: str, entity_id: str) -> list:
     return [
         c
@@ -491,5 +501,175 @@ async def test_weather_station_switch_error_still_alerts_after_recovery_wait(
         await controller.async_refresh()
 
     assert _unavailable_alert_calls(mock_call_late)
+
+    await controller.async_shutdown()
+
+
+async def test_stale_radiation_power_cycles_before_alert(
+    hass: HomeAssistant,
+) -> None:
+    """Stale positive reading: power-cycle first, alert only after 5 min recovery."""
+    zone = make_zone(radiation_trigger_enabled=True)
+    power = "switch.weather_psu"
+    entry = MockConfigEntry(
+        **base_entry_kwargs(
+            radiation_source="sensor.solar_radiation",
+            zones=[zone],
+            weather_station_power=power,
+        )
+    )
+    entry.add_to_hass(hass)
+    controller = IrrigationController(hass, entry)
+    await controller.async_initialize()
+
+    from homeassistant.util import dt as dt_util
+
+    t0 = dt_util.utcnow()
+    stale_updated = t0 - timedelta(hours=2, minutes=1)
+    stale_state = State(
+        "sensor.solar_radiation",
+        "5.92",
+        last_updated=stale_updated,
+        last_changed=stale_updated,
+    )
+
+    async def fake_sleep(_seconds: float) -> None:
+        return None
+
+    with patch(
+        "custom_components.irrigation_computer.coordinator.dt_util.utcnow",
+        return_value=t0,
+    ), patch(
+        "custom_components.irrigation_computer.coordinator.asyncio.sleep",
+        side_effect=fake_sleep,
+    ), patch.object(hass.services, "async_call") as mock_call:
+        await controller._async_check_radiation_source_alert(stale_state)
+        await hass.async_block_till_done()
+
+    assert _switch_calls(mock_call, "turn_off", power)
+    assert _switch_calls(mock_call, "turn_on", power)
+    assert not _stale_alert_calls(mock_call)
+    assert controller._radiation_power_cycle_attempted is True
+    assert controller._radiation_power_cycle_finished_at is not None
+
+    finished = controller._radiation_power_cycle_finished_at
+
+    # Still within recovery window: no alert.
+    with patch(
+        "custom_components.irrigation_computer.coordinator.dt_util.utcnow",
+        return_value=finished + timedelta(minutes=4),
+    ), patch.object(hass.services, "async_call") as mock_call_mid:
+        await controller._async_check_radiation_source_alert(stale_state)
+
+    assert not _stale_alert_calls(mock_call_mid)
+
+    # Past recovery window and still stale: alert fires.
+    with patch(
+        "custom_components.irrigation_computer.coordinator.dt_util.utcnow",
+        return_value=finished + timedelta(minutes=5, seconds=1),
+    ), patch.object(hass.services, "async_call") as mock_call_late:
+        await controller._async_check_radiation_source_alert(stale_state)
+
+    assert _stale_alert_calls(mock_call_late)
+
+    await controller.async_shutdown()
+
+
+async def test_stale_radiation_recovers_after_power_cycle_without_alert(
+    hass: HomeAssistant,
+) -> None:
+    """If the station reports fresh data after the cycle, no stale alert."""
+    zone = make_zone(radiation_trigger_enabled=True)
+    power = "switch.weather_psu"
+    entry = MockConfigEntry(
+        **base_entry_kwargs(
+            radiation_source="sensor.solar_radiation",
+            zones=[zone],
+            weather_station_power=power,
+        )
+    )
+    entry.add_to_hass(hass)
+    controller = IrrigationController(hass, entry)
+    await controller.async_initialize()
+
+    from homeassistant.util import dt as dt_util
+
+    t0 = dt_util.utcnow()
+    stale_updated = t0 - timedelta(hours=2, minutes=1)
+    stale_state = State(
+        "sensor.solar_radiation",
+        "5.92",
+        last_updated=stale_updated,
+        last_changed=stale_updated,
+    )
+
+    async def fake_sleep(_seconds: float) -> None:
+        return None
+
+    with patch(
+        "custom_components.irrigation_computer.coordinator.dt_util.utcnow",
+        return_value=t0,
+    ), patch(
+        "custom_components.irrigation_computer.coordinator.asyncio.sleep",
+        side_effect=fake_sleep,
+    ), patch.object(hass.services, "async_call") as mock_call:
+        await controller._async_check_radiation_source_alert(stale_state)
+        await hass.async_block_till_done()
+
+    assert _switch_calls(mock_call, "turn_off", power)
+    finished = controller._radiation_power_cycle_finished_at
+    assert finished is not None
+
+    recovered_at = finished + timedelta(minutes=2)
+    recovered_state = State(
+        "sensor.solar_radiation",
+        "350",
+        last_updated=recovered_at,
+        last_changed=recovered_at,
+    )
+
+    with patch(
+        "custom_components.irrigation_computer.coordinator.dt_util.utcnow",
+        return_value=recovered_at,
+    ), patch.object(hass.services, "async_call") as mock_call_ok:
+        await controller._async_check_radiation_source_alert(recovered_state)
+
+    assert not _stale_alert_calls(mock_call_ok)
+    assert controller._radiation_power_cycle_attempted is False
+    assert controller._radiation_unavailable_since is None
+
+    await controller.async_shutdown()
+
+
+async def test_stale_radiation_without_power_switch_alerts_immediately(
+    hass: HomeAssistant,
+) -> None:
+    """Without a weather-station power switch, stale still alerts right away."""
+    zone = make_zone(radiation_trigger_enabled=True)
+    entry = MockConfigEntry(
+        **base_entry_kwargs(radiation_source="sensor.solar_radiation", zones=[zone])
+    )
+    entry.add_to_hass(hass)
+    controller = IrrigationController(hass, entry)
+    await controller.async_initialize()
+
+    from homeassistant.util import dt as dt_util
+
+    now = dt_util.utcnow()
+    stale_updated = now - timedelta(hours=2, minutes=1)
+    stale_state = State(
+        "sensor.solar_radiation",
+        "5.92",
+        last_updated=stale_updated,
+        last_changed=stale_updated,
+    )
+
+    with patch(
+        "custom_components.irrigation_computer.coordinator.dt_util.utcnow",
+        return_value=now,
+    ), patch.object(hass.services, "async_call") as mock_call:
+        await controller._async_check_radiation_source_alert(stale_state)
+
+    assert _stale_alert_calls(mock_call)
 
     await controller.async_shutdown()

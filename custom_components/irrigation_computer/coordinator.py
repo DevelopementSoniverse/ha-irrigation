@@ -80,9 +80,9 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         self._radiation_total_wh: float = 0.0
         self._radiation_last_value: float | None = None
         self._radiation_last_ts: datetime | None = None
-        # First time the radiation source was observed as unavailable. Used to
-        # delay the unavailable-alert / weather-station power-cycle so short
-        # hiccups (HA restart, sensor refresh, MQTT blip) don't fire.
+        # First time the radiation source was observed as unavailable or stale.
+        # Used to delay alerts / weather-station power-cycle so short hiccups
+        # (HA restart, sensor refresh, MQTT blip) don't fire.
         self._radiation_unavailable_since: datetime | None = None
         self._radiation_power_cycle_attempted: bool = False
         self._radiation_power_cycle_finished_at: datetime | None = None
@@ -765,7 +765,7 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     def _reset_radiation_outage_state(self) -> None:
-        """Clear unavailable timer and cancel any in-flight power-cycle."""
+        """Clear unavailable/stale timer and cancel any in-flight power-cycle."""
         task = self._radiation_power_cycle_task
         self._radiation_power_cycle_task = None
         if task is not None and not task.done():
@@ -773,6 +773,35 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         self._radiation_unavailable_since = None
         self._radiation_power_cycle_attempted = False
         self._radiation_power_cycle_finished_at = None
+
+    def _radiation_power_cycle_blocks_alert(self) -> bool:
+        """Start or await a weather-station power-cycle.
+
+        Returns True while the caller should hold off alerting (cycle not yet
+        attempted, still running, or recovery window not elapsed). Returns
+        False when no power entity is configured or the recovery wait is over.
+        """
+        if not self._weather_station_power_entity:
+            return False
+
+        now = dt_util.utcnow()
+        if self._radiation_unavailable_since is None:
+            self._radiation_unavailable_since = now
+
+        if not self._radiation_power_cycle_attempted:
+            self._radiation_power_cycle_attempted = True
+            task = self.hass.async_create_task(
+                self._async_power_cycle_weather_station()
+            )
+            self._radiation_power_cycle_task = task
+            self._track_monitor_task(task)
+            return True
+
+        if self._radiation_power_cycle_finished_at is None:
+            return True
+
+        since_cycle = (now - self._radiation_power_cycle_finished_at).total_seconds()
+        return since_cycle < RADIATION_POWER_CYCLE_RECOVERY_SECONDS
 
     async def _async_power_cycle_weather_station(self) -> None:
         """Turn the weather-station PSU off, wait, then turn it back on.
@@ -841,20 +870,7 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             if self._weather_station_power_entity:
                 if unavailable_for < RADIATION_POWER_CYCLE_DELAY_SECONDS:
                     return
-                if not self._radiation_power_cycle_attempted:
-                    self._radiation_power_cycle_attempted = True
-                    task = self.hass.async_create_task(
-                        self._async_power_cycle_weather_station()
-                    )
-                    self._radiation_power_cycle_task = task
-                    self._track_monitor_task(task)
-                    return
-                if self._radiation_power_cycle_finished_at is None:
-                    return
-                since_cycle = (
-                    now - self._radiation_power_cycle_finished_at
-                ).total_seconds()
-                if since_cycle < RADIATION_POWER_CYCLE_RECOVERY_SECONDS:
+                if self._radiation_power_cycle_blocks_alert():
                     return
             elif unavailable_for < RADIATION_UNAVAILABLE_GRACE_SECONDS:
                 return
@@ -868,14 +884,14 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             )
             return
 
-        self._reset_radiation_outage_state()
-
         try:
             value = float(state.state)
         except (TypeError, ValueError):
             value = None
 
         if value is not None and value <= 0:
+            # Legitimate night-time zero: clear outage tracking and alerts.
+            self._reset_radiation_outage_state()
             self._clear_alert(suffix)
             self._clear_alert(stale_suffix)
             return
@@ -883,6 +899,10 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
         age = (now - state.last_updated).total_seconds()
         if age > RADIATION_STALE_SECONDS:
             self._clear_alert(suffix)
+            # Frozen positive reading: try power-cycling the station before
+            # alerting, then wait for the recovery window.
+            if self._radiation_power_cycle_blocks_alert():
+                return
             await self._async_notify_once(
                 stale_suffix,
                 "Radiation source stale",
@@ -891,6 +911,7 @@ class IrrigationController(DataUpdateCoordinator[dict[str, Any]]):
             )
             return
 
+        self._reset_radiation_outage_state()
         self._clear_alert(suffix)
         self._clear_alert(stale_suffix)
 
