@@ -18,3 +18,6 @@ docker/config/tts/
 docker/config/custom_components/
 docker/config/www/
 docker/config/secrets.yaml
+
+# Wissenschaftliche Publikation (lokal, nicht versioniert)
+publication/

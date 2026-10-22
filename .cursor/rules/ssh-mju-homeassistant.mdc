@@ -1,0 +1,51 @@
+---
+description: SSH-Zugang und Deploy zum Bewässerungscomputer / MJU Home Assistant (Thailand)
+alwaysApply: true
+---
+
+# SSH: MJU Home Assistant (Thailand)
+
+Zweiter Versuchsstandort an der MJU (Maejo University, Thailand). Home Assistant OS, erreichbar über Tailscale. Weboberfläche: http://100.94.7.112:8123
+
+```bash
+ssh mjuHomeAssistant
+```
+
+## Verbindungsdaten
+
+| | |
+|---|---|
+| Alias | `mjuHomeAssistant` |
+| Host | `100.94.7.112` (Tailscale) |
+| Port | `22` |
+| User | `root` |
+| Key | `~/.ssh/id_rsa` |
+| Hostname remote | `core-ssh` |
+| Config-Pfad | `/config` (→ `/homeassistant`) |
+| Hardware | Home Assistant Green (`aarch64`) |
+
+Konfiguration liegt in `~/.ssh/config`. Befehle remote mit `ssh mjuHomeAssistant '<cmd>'` ausführen.
+
+Die Verbindung ist langsam (Verbindungsaufbau ca. 20–30 s). Mehrere Befehle möglichst in **einem** SSH-Aufruf bündeln und großzügige Timeouts verwenden.
+
+## Deploy: kein rsync — immer scp (oder tar über SSH)
+
+Wie in Triesdorf hat das SSH-Addon (Alpine) **kein `rsync`**. Vorhanden sind u. a. `scp`, `tar` und `ha`.
+
+```bash
+scp -r custom_components/irrigation_computer \
+  mjuHomeAssistant:/config/custom_components/
+```
+
+Alternative bei vielen Dateien:
+
+```bash
+tar czf - -C custom_components irrigation_computer \
+  | ssh mjuHomeAssistant 'tar xzf - -C /config/custom_components'
+```
+
+Hinweise:
+
+- `scp -r` und tar-Pipe **löschen keine** remote entfernten Dateien. Bei Umbenennungen/Löschungen Zielordner vorher leeren oder die Dateien explizit remote entfernen.
+- Nach Code-Deploy der Integration: Home Assistant Core neu starten (`ha core restart`).
+- Triesdorf (`triesdorfHomeAssistant`) und MJU (`mjuHomeAssistant`) sind getrennte Standorte — immer bewusst wählen, wohin deployt wird.
